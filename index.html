@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Scala.js Spreadsheet</title>
+</head>
+<body>
+<h1>Scala.js Spreadsheet</h1>
+<div id="spreadsheet">
+    <div id="cells"></div>
+    <div id="values"></div>
+</div>
+
+<!-- Include Scala.js compiled code -->
+<script type="text/javascript" src="./target/scala-2.11/scala-js-spreadsheet-fastopt.js"></script>
+<script type="text/javascript">
+    co.mglvl.spreadsheet.Main().main();
+</script>
+</body>
+</html>
