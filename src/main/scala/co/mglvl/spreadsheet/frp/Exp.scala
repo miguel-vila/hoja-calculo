@@ -1,6 +1,6 @@
 package co.mglvl.spreadsheet.frp
 
-case class Exp[A](thunk: () => (A, Set[Cell[_]])) extends AnyRef {
+case class Exp[+A](thunk: () => (A, Set[Cell[_]])) extends AnyRef {
 
   def apply(): (A, Set[Cell[_]]) = thunk()
 

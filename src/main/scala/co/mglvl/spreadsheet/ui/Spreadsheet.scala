@@ -1,7 +1,7 @@
 package co.mglvl.spreadsheet.ui
 
 import co.mglvl.spreadsheet.frp.{Exp, Cell}
-import co.mglvl.spreadsheet.interpreter.Interpreter
+import co.mglvl.spreadsheet.interpreter.{LiteralValue, FloatValue, Interpreter}
 import co.mglvl.spreadsheet.parsing.Parser
 import org.scalajs.dom
 import org.scalajs.dom.html
@@ -13,7 +13,7 @@ import org.scalajs.dom.raw.Element
 
 case class Spreadsheet(n: Int, root: Element) {
 
-  private val cells = Vector.fill(n)( Cell( Exp.unit(0.0f) ) )
+  private val cells = Vector.fill(n)( Cell( Exp.unit(FloatValue(0.0f): LiteralValue) ) )
 
   private val spreadsheetCells = for {
     cell <- cells
@@ -23,7 +23,7 @@ case class Spreadsheet(n: Int, root: Element) {
     root.appendChild( spreadsheetCell.htmlElement )
   }
 
-  private case class SpreadsheetCell(cell: Cell[Float]) {
+  private case class SpreadsheetCell(cell: Cell[LiteralValue]) {
     private var lastValue: Option[String] = None
 
     private val root = document.createElement("div")

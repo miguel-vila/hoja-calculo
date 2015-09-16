@@ -12,36 +12,28 @@ object Parser extends JavaTokenParsers with RegexParsers {
     parenthesised | p
   }
 
-  val floatNumber: Parser[Literal] = floatingPointNumber.map(s => Literal(s.toFloat))
+  val floatNumber: Parser[LiteralFloat] = floatingPointNumber.map(s => LiteralFloat(FloatValue(s.toFloat)))
 
-  val cellReference: Parser[CellReference] = ("$" ~ regex("\\d+".r)).map { case ~(_,ref) => CellReference(ref.toInt) }
+  val cellReference: Parser[FloatReference] = ("$" ~ regex("\\d+".r)).map { case ~(_,ref) => FloatReference(ref.toInt) }
 
-  val factor: Parser[Expression] = floatNumber | cellReference
+  val factor: Parser[FloatExpression] = floatNumber | cellReference
 
-  val term: Parser[Expression] = ( factor ~ rep("*" ~ factor) ) map { case ~(e1,es) =>
+  val term: Parser[FloatExpression] = ( factor ~ rep("*" ~ factor) ) map { case ~(e1,es) =>
     accumulateTerm(e1,es)
   }
 
-  val expression: Parser[Expression] = ( term ~ rep( ("+" ~ term) )).map { case ~(e1,es) =>
+  val expression: Parser[FloatExpression] = ( term ~ rep( ("+" ~ term) )).map { case ~(e1,es) =>
     accumulateExp(e1,es)
   }
 
-  def accumulateExp(init: Expression, rest: List[String ~ Expression]): Expression = {
-    rest.foldLeft(init)( { case (expAcc,~(op, exp)) =>
-      op match {
-        case "+" => Add(expAcc, exp)
-      }
-    })
+  def accumulateExp(init: FloatExpression, rest: List[String ~ FloatExpression]): FloatExpression = {
+    rest.foldLeft(init) { case (expAcc,~(op, exp)) => Add(expAcc, exp) }
   }
 
-  def accumulateTerm(init: Expression, rest: List[String ~ Expression]): Expression = {
-    rest.foldLeft(init)( { case (expAcc,~(op, exp)) =>
-      op match {
-        case "*" => Multiply(expAcc,exp)
-      }
-    })
+  def accumulateTerm(init: FloatExpression, rest: List[String ~ FloatExpression]): FloatExpression = {
+    rest.foldLeft(init) { case (expAcc,~(op, exp)) => Multiply(expAcc,exp) }
   }
 
-  def parse(str: String): ParseResult[Expression] = parseAll(expression, str)
+  def parse(str: String): ParseResult[Expression[_]] = parseAll(expression, str)
 
 }
