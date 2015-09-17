@@ -27,10 +27,17 @@ object Exp {
 
   def unit[A](a: A): Exp[A] = Exp( () => (a,Set.empty[Cell[_]]) )
 
-  def map2[A,B,C](a: Exp[A], b: Exp[B])(f: (A,B) => C): Exp[C] =
+  /*
+    Alternatively:
     for {
       _a <- a
       _b <- b
     } yield f(_a, _b)
+   */
+  def map2[A,B,C](a: Exp[A], b: Exp[B])(f: (A,B) => C): Exp[C] = Exp { () =>
+    val (_a,rsa) = a.thunk()
+    val (_b,rsb) = b.thunk()
+    (f(_a,_b), rsa union rsb)
+  }
 
 }
