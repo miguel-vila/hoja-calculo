@@ -5,22 +5,11 @@ import co.mglvl.spreadsheet.frp.{Cell, Exp}
 
 object Interpreter {
 
-  /*
-  def getReferences(exp: Expression): Set[Int] = {
-    exp match {
-      case _: Literal => Set.empty
-      case CellReference(id) => Set(id)
-      case Add(left,right) => getReferences(left) union getReferences(right)
-      case Multiply(left,right) => getReferences(left) union getReferences(right)
-    }
-  }
-  */
-
   def evaluate(expression: Expression[_])(env: Int => Cell[LiteralValue]): Exp[LiteralValue] =
     expression match {
+      case cellRef: CellReference[_] => env(cellRef.id).get()
       case floatExpression: FloatExpression => evaluateFloatExpression(floatExpression)(env)
       case booleanExpression: BooleanExpression => evaluateBooleanExpression(booleanExpression)(env)
-      case cellRef: CellReference[_] => env(cellRef.id).get()
       case IfElse(condition,ifTrue,ifNot) =>
         evaluateBooleanExpression(condition)(env).flatMap { condition =>
           if(condition.value) {
@@ -31,13 +20,23 @@ object Interpreter {
         }
     }
 
-  def evaluateFloatExpression(expression: FloatExpression)(env: Int => Cell[LiteralValue]): Exp[FloatValue] =
+  def evaluateFloatExpression(expression: FloatExpression)(env: Int => Cell[LiteralValue]): Exp[FloatValue] = {
     expression match {
-      case LiteralFloat(n)     => Exp.unit( n )
-      case FloatReference(id)           => env(id).get().map(_.asInstanceOf[FloatValue])
-      case Add            (left,right)  => Exp.map2( evaluateFloatExpression(left)(env) , evaluateFloatExpression(right)(env) ){ _ + _ }
-      case Multiply       (left,right)  => Exp.map2( evaluateFloatExpression(left)(env) , evaluateFloatExpression(right)(env) ){ _ * _ }
+      case LiteralFloat(n)    => Exp.unit(n)
+      case FloatReference(id) => env(id).get().map(_.asInstanceOf[FloatValue])
+      case binaryOp: BinaryOp => evaluateBinaryOp(binaryOp)(env)
     }
+  }
+
+  def evaluateBinaryOp(binaryOp: BinaryOp)(env: Int => Cell[LiteralValue]): Exp[FloatValue] = {
+    def operate(f: (FloatValue, FloatValue) => FloatValue): Exp[FloatValue] = {
+      Exp.map2(evaluateFloatExpression(binaryOp.left)(env), evaluateFloatExpression(binaryOp.right)(env)) (f)
+    }
+    binaryOp match {
+      case _: Add       => operate( _ + _ )
+      case _: Multiply  => operate( _ * _ )
+    }
+  }
 
   def evaluateBooleanExpression(expression: BooleanExpression)(env: Int => Cell[LiteralValue]): Exp[BooleanValue] =
     expression match {
@@ -46,13 +45,15 @@ object Interpreter {
     }
 
   def evaluateComparison(comparison: Comparison)(env: Int => Cell[LiteralValue]): Exp[BooleanValue] = {
-    def joinWith(f: (FloatValue, FloatValue) => BooleanValue) = {
+    def compare(f: (FloatValue, FloatValue) => BooleanValue) = {
       Exp.map2(evaluateFloatExpression(comparison.left)(env), evaluateFloatExpression(comparison.right)(env))(f)
     }
     comparison match {
-      case LessThanOrEqual    (left, right) => joinWith(_ <= _)
-      case GreaterThanOrEqual (left, right) => joinWith(_ >= _)
-      case Equal              (left, right) => joinWith(_ == _)
+      case LessThan           (left, right) => compare(_ < _)
+      case LessThanOrEqual    (left, right) => compare(_ <= _)
+      case GreaterThan        (left, right) => compare(_ > _)
+      case GreaterThanOrEqual (left, right) => compare(_ >= _)
+      case Equal              (left, right) => compare(_ == _)
     }
   }
 

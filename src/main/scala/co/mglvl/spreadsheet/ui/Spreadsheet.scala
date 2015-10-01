@@ -56,32 +56,28 @@ case class Spreadsheet(n: Int, root: Element) {
       }
     }
 
-    val validKeyCodes: Set[Int] = Set(
-      8,//backspace
-      9,//tab
-      16,//shift
-      18,//alt
-      20,//capslock
-      187,//+ y *
-      55,// /
-      189,//-
-      16, //$
-      56, //(
-      57 //)
-    ) ++ Range(48,58) //digits
-
     def onChange(event: dom.KeyboardEvent) = {
-      if(lastValue.forall(_ != input.value)) {
+      if(input.value.trim != "" && lastValue != Some(input.value)) {
         Parser.parse(input.value) match {
           case Success(ast,_) =>
-            val newExp = Interpreter.evaluate(ast)(cells)
-            cell.set( newExp )
-            setValue()
-            lastValue = Some(input.value)
+            try {
+              val newExp = Interpreter.evaluate(ast)(cells)
+              cell.set( newExp )
+              setValue()
+              lastValue = Some(input.value)
+            } catch {
+              case t: Throwable =>
+                println(s"Error: $t")
+                t.printStackTrace()
+                output.value = "Evaluation error"
+                lastValue = None
+            }
           case Failure(msg,_) =>
-            output.value = msg
+            println(s"Failure = $msg")
+            output.value = "Parse error"
           case Error(msg,_) =>
-            output.value = msg
+            println(s"Error = $msg")
+            output.value = "Parse error"
         }
       }
     }
