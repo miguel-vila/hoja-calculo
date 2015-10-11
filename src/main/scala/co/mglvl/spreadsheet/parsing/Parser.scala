@@ -21,30 +21,25 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val factor: Parser[FloatExpression] = floatNumber | floatReference
 
-  val term: Parser[FloatExpression] = ( factor ~ rep("*" ~> factor) ) map { case e1 ~ es =>
-    accumulateTerm(e1,es)
-  }
+  val addOp = "+" ^^^ (Add.apply(_,_))
 
-  val floatExpression: Parser[FloatExpression] = ( term ~ rep( ("+" ~> term) )).map { case e1 ~ es =>
-    accumulateExp(e1,es)
-  }
+  val multOp = "*" ^^^ (Multiply.apply(_,_))
 
-  def accumulateExp(init: FloatExpression, rest: List[FloatExpression]): FloatExpression = {
-    rest.foldLeft(init) { case (expAcc, exp) => Add(expAcc, exp) }
-  }
+  val term: Parser[FloatExpression] = chainl1(factor, multOp)
 
-  def accumulateTerm(init: FloatExpression, rest: List[FloatExpression]): FloatExpression = {
-    rest.foldLeft(init) { case (expAcc, exp) => Multiply(expAcc,exp) }
-  }
+  val floatExpression: Parser[FloatExpression] = chainl1(term, addOp)
 
+  /*
   def comparisonParser[C<:Comparison](symbol: String, constructor: (FloatExpression, FloatExpression) => C): Parser[C] =
     (floatExpression ~ symbol ~ floatExpression) map {
       case e1 ~ _ ~ e2 => constructor(e1,e2)
     }
+  */
 
-//  val lessThan        : Parser[LessThan]            = comparisonParser("<"  , LessThan.apply          )
+  /*
+  val lessThan        : Parser[LessThan]            = comparisonParser("<"  , LessThan.apply          )
   val lessThanOrEq    : Parser[LessThanOrEqual]     = comparisonParser("<=" , LessThanOrEqual.apply   )
-//  val greaterThan     : Parser[GreaterThan]         = comparisonParser(">"  , GreaterThan.apply       )
+  val greaterThan     : Parser[GreaterThan]         = comparisonParser(">"  , GreaterThan.apply       )
   val greaterThanOrEq : Parser[GreaterThanOrEqual]  = comparisonParser(">=" , GreaterThanOrEqual.apply)
   val eq              : Parser[Equal]               = comparisonParser("==" , Equal.apply             )
 
@@ -61,8 +56,9 @@ object Parser extends JavaTokenParsers with RegexParsers {
       IfElse(condition, ifTrue, ifFalse)
     }
   }
+  */
 
-  val expression: Parser[Expression[_<:LiteralValue]] = booleanExpression | floatExpression | ifElse
+  val expression: Parser[Expression[_<:LiteralValue]] = floatExpression
 
   def parse(str: String): ParseResult[Expression[_]] = parseAll(expression, str)
 

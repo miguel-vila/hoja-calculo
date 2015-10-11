@@ -4,23 +4,26 @@ sealed trait LiteralValue
 case class FloatValue(value: Float) extends AnyRef with LiteralValue {
   def +(other: FloatValue)  = FloatValue(value + other.value)
   def *(other: FloatValue)  = FloatValue(value * other.value)
+/*
   def <(other: FloatValue) = BooleanValue(value < other.value)
   def <=(other: FloatValue) = BooleanValue(value <= other.value)
   def >(other: FloatValue) = BooleanValue(value > other.value)
   def >=(other: FloatValue) = BooleanValue(value >= other.value)
   def ==(other: FloatValue) = BooleanValue(value == other.value)
+*/
 
   override def toString()   = value.toString
 }
+/*
 case class BooleanValue(value: Boolean) extends AnyRef with LiteralValue {
   override def toString() = value.toString
 }
-
+*/
 sealed trait Expression[+L<:LiteralValue]
 trait CellReference[+L<:LiteralValue] extends Expression[LiteralValue] {
   def id: Int
 }
-case class IfElse[L<:LiteralValue](condition: BooleanExpression, ifTrue: Expression[L], ifNot: Expression[L]) extends Expression[L]
+//case class IfElse[L<:LiteralValue](condition: BooleanExpression, ifTrue: Expression[L], ifNot: Expression[L]) extends Expression[L]
 
 sealed trait FloatExpression extends Expression[FloatValue]
 case class LiteralFloat(value: FloatValue) extends FloatExpression
@@ -32,6 +35,7 @@ sealed trait BinaryOp extends FloatExpression {
 case class Add(left: FloatExpression, right: FloatExpression) extends BinaryOp
 case class Multiply(left: FloatExpression, right: FloatExpression) extends BinaryOp
 
+/*
 sealed trait BooleanExpression extends Expression[BooleanValue]
 case class BooleanReference(id: Int) extends BooleanExpression
 sealed trait Comparison extends BooleanExpression {
@@ -43,3 +47,4 @@ case class LessThanOrEqual(left: FloatExpression, right: FloatExpression) extend
 case class GreaterThan(left: FloatExpression, right: FloatExpression) extends Comparison
 case class GreaterThanOrEqual(left: FloatExpression, right: FloatExpression) extends Comparison
 case class Equal(left: FloatExpression, right: FloatExpression) extends Comparison
+*/

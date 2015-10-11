@@ -9,6 +9,7 @@ object Interpreter {
     expression match {
       case cellRef: CellReference[_] => env(cellRef.id).get()
       case floatExpression: FloatExpression => evaluateFloatExpression(floatExpression)(env)
+        /*
       case booleanExpression: BooleanExpression => evaluateBooleanExpression(booleanExpression)(env)
       case IfElse(condition,ifTrue,ifNot) =>
         evaluateBooleanExpression(condition)(env).flatMap { condition =>
@@ -18,6 +19,7 @@ object Interpreter {
             evaluate(ifNot)(env)
           }
         }
+        */
     }
 
   def evaluateFloatExpression(expression: FloatExpression)(env: Int => Cell[LiteralValue]): Exp[FloatValue] = {
@@ -37,6 +39,7 @@ object Interpreter {
       case _: Multiply  => operate( _ * _ )
     }
   }
+  /*
 
   def evaluateBooleanExpression(expression: BooleanExpression)(env: Int => Cell[LiteralValue]): Exp[BooleanValue] =
     expression match {
@@ -56,6 +59,7 @@ object Interpreter {
       case Equal              (left, right) => compare(_ == _)
     }
   }
+  */
 
 
 }
