@@ -21,13 +21,13 @@ case class BooleanValue(value: Boolean) extends AnyRef with LiteralValue {
 */
 sealed trait Expression[+L<:LiteralValue]
 trait CellReference[+L<:LiteralValue] extends Expression[LiteralValue] {
-  def id: Int
+  def id: String
 }
 //case class IfElse[L<:LiteralValue](condition: BooleanExpression, ifTrue: Expression[L], ifNot: Expression[L]) extends Expression[L]
 
 sealed trait FloatExpression extends Expression[FloatValue]
 case class LiteralFloat(value: FloatValue) extends FloatExpression
-case class FloatReference(id: Int) extends FloatExpression with CellReference[FloatValue]
+case class FloatReference(id: String) extends FloatExpression with CellReference[FloatValue]
 sealed trait BinaryOp extends FloatExpression {
   def left: FloatExpression
   def right: FloatExpression

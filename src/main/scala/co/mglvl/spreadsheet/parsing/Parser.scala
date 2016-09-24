@@ -15,7 +15,7 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val floatNumber: Parser[LiteralFloat] = withOptionalWhitespace( floatingPointNumber ).map(s => LiteralFloat(FloatValue(s.toFloat)))
 
-  val reference = withOptionalWhitespace("$" ~> regex("\\d+".r)) map { _.toInt }
+  val reference = withOptionalWhitespace("$" ~> regex("[A-Z]+\\d+".r))
 
   val floatReference: Parser[FloatReference] = reference map { ref => FloatReference(ref) }
 

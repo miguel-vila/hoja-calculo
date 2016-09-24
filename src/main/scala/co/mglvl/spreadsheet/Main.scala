@@ -10,8 +10,9 @@ object Main extends js.JSApp {
 
   def main(): Unit = {
     val cellsElem = document.getElementById("cells")
+    val m = 5
     val n = 5
-    val spreadSheet = Spreadsheet(n, cellsElem)
+    val spreadSheet = Spreadsheet(m, n, cellsElem)
     println("Listo!!")
   }
 

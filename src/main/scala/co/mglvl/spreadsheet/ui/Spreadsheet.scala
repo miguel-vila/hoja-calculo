@@ -10,67 +10,148 @@ import org.scalajs.dom
 import org.scalajs.dom.html
 import dom.document
 import org.scalajs.dom.raw.Element
+import scala.scalajs.js.timers._
+import scala.concurrent.duration._
 
-case class Spreadsheet(n: Int, root: Element) {
+case class Spreadsheet(m: Int, n: Int, root: Element) {
 
-  private val cells = Vector.fill(n)( Cell( Exp.unit(FloatValue(0.0f): LiteralValue) ) )
+  def column(n: Int): Char = ('A'+n).toChar
+
+  def id(i: Int, j: Int): String = s"${column(j)}$i"
+
+  private val cells = Vector.tabulate(m,n) { (i,j) =>
+    println(s"id = ${id(i,j)}")
+    Cell( id(i,j), Exp.unit(FloatValue(0.0f): LiteralValue) )
+  }
+
+  // @TODO make this work for m > 9 and n > 26
+  private def getCell(id: String): Cell[LiteralValue] = {
+    println(s"id = $id")
+    var column = (id(0) - 'A').toInt
+    println(s"column = $column")
+    var row = (id(1) - '0').toInt - 1
+    println(s"row = $row")
+    cells(row)(column)
+  }
 
   private val spreadsheetCells = for {
-    cell <- cells
-  } yield SpreadsheetCell(cell)
+    row <- cells
+  } yield {
+    for {
+      cell <- row
+    } yield SpreadsheetCell(cell)
+  }
 
-  spreadsheetCells.foreach { spreadsheetCell =>
-    root.appendChild( spreadsheetCell.htmlElement )
+  private val editCellInput = new EditCellInput(None)
+
+  root.appendChild(editCellInput.htmlElement)
+
+  val table = document.createElement("table")
+  table.classList.add("table-bordered")
+  val thead = document.createElement("thead")
+  table.appendChild(thead)
+  val htr = document.createElement("tr")
+  thead.appendChild(htr)
+  val tbody = document.createElement("tbody")
+  table.appendChild(tbody)
+  htr.appendChild {
+    val th = document.createElement("th")
+    th
+  }
+  for { i <- (0 to m-1) } {
+    htr.appendChild {
+      val th = document.createElement("th")
+      th.appendChild(document.createTextNode(column(i).toString()))
+      th
+    }
+    val tr = document.createElement("tr")
+    val th = document.createElement("th")
+    th.setAttribute("scope", "row")
+    th.appendChild(document.createTextNode( (i+1).toString) )
+    tr.appendChild(th)
+    for { j <- (0 to n-1) } {
+      val td = document.createElement("td")
+      td.appendChild( spreadsheetCells(i)(j).htmlElement )
+      tr.appendChild(td)
+    }
+    tbody.appendChild(tr)
+  }
+  root.appendChild(table)
+
+  private case class EditCellInput(var pointedCell: Option[SpreadsheetCell]) {
+
+    val htmlElement = document.createElement("input").asInstanceOf[html.Input]
+    htmlElement.`type` = "text"
+    htmlElement.classList.add("form-control")
+
+    htmlElement.addEventListener("change", onChange _)
+    htmlElement.addEventListener("keyup", onChange _)
+    htmlElement.addEventListener("keypress", onChange _)
+
+    def setPointedCell(cell: SpreadsheetCell) = {
+      println(s"prev = ${pointedCell.map(_.htmlElement.classList)}")
+      pointedCell.foreach(_.htmlElement.classList.remove("editing-cell"))
+      htmlElement.value = cell.expression
+      pointedCell = Some(cell)
+      cell.htmlElement.classList.add("editing-cell")
+    }
+
+    def onChange(event: dom.KeyboardEvent) = {
+      pointedCell.foreach{
+        _.changeExpression(htmlElement.value)
+      }
+    }
+
   }
 
   private case class SpreadsheetCell(cell: Cell[LiteralValue]) {
-    private var lastValue: Option[String] = None
 
-    private val root = document.createElement("div")
+//    root.appendChild( document.createTextNode(s"$$${cell.id.toString} = ") )
 
-    def htmlElement = root
-    root.appendChild( document.createTextNode(s"$$${cell.id.toString} = ") )
-
-    val input: html.Input = {
-      val elem = document.createElement("input").asInstanceOf[html.Input]
-      elem.`type` = "text"
-      root.appendChild(elem)
-      elem.addEventListener("change", onChange _)
-      elem.addEventListener("keyup", onChange _)
-      elem.addEventListener("keypress", onChange _)
-      elem
-    }
+    var expression = ""
 
     val output = {
       val elem = document.createElement("input").asInstanceOf[html.Input]
       elem.`type` = "text"
       elem.readOnly = true
+      elem.classList.add("form-control")
       root.appendChild(elem)
       elem
     }
 
-    def setValue(): Unit = {
-      output.value = cell.get().run().toString
-      cell.observers.foreach { obs =>
-        spreadsheetCells( obs.id ).setValue()
+    output.addEventListener("click", { _: dom.Event =>
+                              editCellInput.setPointedCell(this)
+                            }
+    )
+
+    def htmlElement = output
+
+    cell addListener { value =>
+      output.value = value.toString()
+      putValueChangedBorder()
+    }
+
+    def putValueChangedBorder() = {
+      output.classList.add("value-changed")
+      setTimeout(350 millis) {
+        output.classList.remove("value-changed")
       }
     }
 
-    def onChange(event: dom.KeyboardEvent) = {
-      if(input.value.trim != "" && lastValue != Some(input.value)) {
-        Parser.parse(input.value) match {
+    def changeExpression(newExpression: String) = {
+      if(newExpression.trim != "" && expression != newExpression) {
+        Parser.parse(newExpression) match {
           case Success(ast,_) =>
             try {
-              val newExp = Interpreter.evaluate(ast)(cells)
+              val newExp = Interpreter.evaluate(ast)(getCell)
               cell.set( newExp )
-              setValue()
-              lastValue = Some(input.value)
+              expression = newExpression
             } catch {
               case t: Throwable =>
                 println(s"Error: $t")
                 t.printStackTrace()
                 output.value = "Evaluation error"
-                lastValue = None
+                expression = ""
             }
           case Failure(msg,_) =>
             println(s"Failure = $msg")

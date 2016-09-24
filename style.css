@@ -1,0 +1,17 @@
+.editing-cell {
+    border-color: rgba(82,168,236,.8);
+    border-width: 2px;
+    outline: 10;
+    outline: thin dotted \9;
+    -moz-box-shadow: 0 0 8px rgba(82,168,236,.6);
+    box-shadow: 0 0 8px rgba(82,168,236,1) !important;
+}
+
+.value-changed {
+    border-color: rgba(121,227,86,.8);
+    border-width: 1.5px;
+    outline: 10;
+    outline: thin dotted \9;
+    -moz-box-shadow: 0 0 8px rgba(121,227,86,.6);
+    box-shadow: 0 0 8px rgba(121,227,86,1) !important;
+}

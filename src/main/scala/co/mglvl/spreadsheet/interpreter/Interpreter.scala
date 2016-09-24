@@ -5,7 +5,7 @@ import co.mglvl.spreadsheet.frp.{Cell, Exp}
 
 object Interpreter {
 
-  def evaluate(expression: Expression[_])(env: Int => Cell[LiteralValue]): Exp[LiteralValue] =
+  def evaluate(expression: Expression[_])(env: String => Cell[LiteralValue]): Exp[LiteralValue] =
     expression match {
       case cellRef: CellReference[_] => env(cellRef.id).get()
       case floatExpression: FloatExpression => evaluateFloatExpression(floatExpression)(env)
@@ -22,7 +22,7 @@ object Interpreter {
         */
     }
 
-  def evaluateFloatExpression(expression: FloatExpression)(env: Int => Cell[LiteralValue]): Exp[FloatValue] = {
+  def evaluateFloatExpression(expression: FloatExpression)(env: String => Cell[LiteralValue]): Exp[FloatValue] = {
     expression match {
       case LiteralFloat(n)    => Exp.unit(n)
       case FloatReference(id) => env(id).get().map(_.asInstanceOf[FloatValue])
@@ -30,7 +30,7 @@ object Interpreter {
     }
   }
 
-  def evaluateBinaryOp(binaryOp: BinaryOp)(env: Int => Cell[LiteralValue]): Exp[FloatValue] = {
+  def evaluateBinaryOp(binaryOp: BinaryOp)(env: String => Cell[LiteralValue]): Exp[FloatValue] = {
     def operate(f: (FloatValue, FloatValue) => FloatValue): Exp[FloatValue] = {
       Exp.map2(evaluateFloatExpression(binaryOp.left)(env), evaluateFloatExpression(binaryOp.right)(env)) (f)
     }
@@ -41,13 +41,13 @@ object Interpreter {
   }
   /*
 
-  def evaluateBooleanExpression(expression: BooleanExpression)(env: Int => Cell[LiteralValue]): Exp[BooleanValue] =
+  def evaluateBooleanExpression(expression: BooleanExpression)(env: String => Cell[LiteralValue]): Exp[BooleanValue] =
     expression match {
       case BooleanReference(id)   => env(id).get().map(_.asInstanceOf[BooleanValue])
       case comparison: Comparison => evaluateComparison(comparison)(env)
     }
 
-  def evaluateComparison(comparison: Comparison)(env: Int => Cell[LiteralValue]): Exp[BooleanValue] = {
+  def evaluateComparison(comparison: Comparison)(env: String => Cell[LiteralValue]): Exp[BooleanValue] = {
     def compare(f: (FloatValue, FloatValue) => BooleanValue) = {
       Exp.map2(evaluateFloatExpression(comparison.left)(env), evaluateFloatExpression(comparison.right)(env))(f)
     }

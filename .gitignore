@@ -6,3 +6,5 @@ target
 *application.conf
 .idea
 .idea_modules
+.ensime*
+

@@ -1,11 +1,11 @@
 package co.mglvl.spreadsheet.frp
 
-case class Cell[A](
-                  val id: Int,
-                  private var code: Exp[A],
-                  private var _value: Option[A],
-                  var reads: Set[Cell[_]],
-                  var observers: Set[Cell[_]]
+class Cell[A](
+  val id: String,
+  private var code: Exp[A],
+  private var _value: Option[A],
+  var reads: Set[Cell[_]],
+  var observers: Set[Cell[_]]
   ) {
 
   override def equals(o: Any): Boolean = o match {
@@ -32,6 +32,7 @@ case class Cell[A](
   def set(exp: Exp[A]): Unit = {
     invalidate()
     code = exp
+    update()
   }
   private def invalidate(): Unit = {
     invalidateReadValues()
@@ -52,21 +53,25 @@ case class Cell[A](
     observers = observers - cell
   }
 
+  var listeners = List.empty[A => Unit]
+
+  private def update(): Unit = {
+    val newValue = get().run
+    listeners.foreach(_(newValue))
+    observers foreach (_.update())
+  }
+
+  def addListener(f: A => Unit): Unit = {
+    listeners = f :: listeners
+  }
+
 }
 
 object Cell {
 
-  private var id = 0
-
-  private def newId(): Int = {
-    val _id = id
-    id += 1
-    _id
-  }
-
-  def apply[A](exp: Exp[A]): Cell[A] =
+  def apply[A](id: String, exp: Exp[A]): Cell[A] =
     new Cell(
-      id = newId(),
+      id = id,
       code = exp,
       _value = None,
       reads = Set.empty,

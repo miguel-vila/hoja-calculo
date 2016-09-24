@@ -4,7 +4,7 @@ name := "scala-js-spreadsheet"
 
 version := "0.0.0"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
 persistLauncher in Compile := true
 
@@ -37,7 +37,7 @@ resolvers ++= Seq(
 val scalazV = "7.1.0"
 
 libraryDependencies ++= Seq(
-	"org.scala-js" %%% "scalajs-dom" % "0.8.1",
+	"org.scala-js" %%% "scalajs-dom" % "0.9.1",
   "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2"
 //  "org.scalaz"          %%  "scalaz-core"                   % scalazV
 )
