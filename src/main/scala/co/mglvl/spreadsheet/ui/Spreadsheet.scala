@@ -83,13 +83,16 @@ case class Spreadsheet(m: Int, n: Int, root: Element) {
     val htmlElement = document.createElement("input").asInstanceOf[html.Input]
     htmlElement.`type` = "text"
     htmlElement.classList.add("form-control")
+    htmlElement.placeholder = "Select a cell"
+    htmlElement.readOnly = true
 
     htmlElement.addEventListener("change", onChange _)
     htmlElement.addEventListener("keyup", onChange _)
     htmlElement.addEventListener("keypress", onChange _)
 
     def setPointedCell(cell: SpreadsheetCell) = {
-      println(s"prev = ${pointedCell.map(_.htmlElement.classList)}")
+      htmlElement.placeholder = ""
+      htmlElement.readOnly = false
       pointedCell.foreach(_.htmlElement.classList.remove("editing-cell"))
       htmlElement.value = cell.expression
       pointedCell = Some(cell)
