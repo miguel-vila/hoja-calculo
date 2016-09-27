@@ -1,6 +1,9 @@
 *.class
 project/project
 project/target
+js/target
+jvm/target
+jvm/project/target
 snapshots
 target
 *application.conf

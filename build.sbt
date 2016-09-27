@@ -4,8 +4,6 @@ name := "scala-js-spreadsheet"
 
 version := "0.0.0"
 
-scalaVersion := "2.11.8"
-
 persistLauncher in Compile := true
 
 scalacOptions ++= Seq(
@@ -34,10 +32,29 @@ resolvers ++= Seq(
     "spray repo"          at "http://repo.spray.io"
 )
 
-val scalazV = "7.1.0"
+lazy val root = project.in(file(".")).
+  aggregate(spreadSheetJS, spreadSheetJVM).
+  settings(
+    publish := {},
+    publishLocal := {},
+    mainClass in Compile := Some("co.spreadsheet.Main")
+  )
 
-libraryDependencies ++= Seq(
-	"org.scala-js" %%% "scalajs-dom" % "0.9.1",
-  "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2"
-//  "org.scalaz"          %%  "scalaz-core"                   % scalazV
-)
+lazy val spreadSheet = crossProject.in(file(".")).
+  settings(
+    name := "spreadsheet",
+    version := "0.0.1"
+  ).
+  jvmSettings(
+  ).
+  jsSettings(
+    scalaVersion := "2.11.8",
+    mainClass in Compile := Some("co.mglvl.spreadsheet.Main"),
+    libraryDependencies ++= Seq(
+	    "org.scala-js" %%% "scalajs-dom" % "0.9.1",
+      "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2"
+    )
+  )
+
+lazy val spreadSheetJVM = spreadSheet.jvm
+lazy val spreadSheetJS = spreadSheet.js
