@@ -1,7 +1,7 @@
 package co.mglvl.spreadsheet.ui
 
 import co.mglvl.spreadsheet.frp.{Exp, Cell}
-import co.mglvl.spreadsheet.interpreter.{LiteralValue, FloatValue, Interpreter}
+import co.mglvl.spreadsheet.interpreter.{FloatValue, Interpreter}
 import co.mglvl.spreadsheet.parsing.Parser
 import org.scalajs.dom
 import org.scalajs.dom.html
@@ -21,11 +21,11 @@ case class Spreadsheet(m: Int, n: Int, root: Element) {
 
   private val cells = Vector.tabulate(m,n) { (i,j) =>
     println(s"id = ${id(i,j)}")
-    Cell( id(i,j), Exp.unit(FloatValue(0.0f): LiteralValue) )
+    Cell( id(i,j), Exp.unit(0.0f) )
   }
 
   // @TODO make this work for m > 9 and n > 26
-  private def getCell(id: String): Cell[LiteralValue] = {
+  private def getCell(id: String): Cell = {
     println(s"id = $id")
     var column = (id(0) - 'A').toInt
     println(s"column = $column")
@@ -107,7 +107,7 @@ case class Spreadsheet(m: Int, n: Int, root: Element) {
 
   }
 
-  private case class SpreadsheetCell(cell: Cell[LiteralValue]) {
+  private case class SpreadsheetCell(cell: Cell) {
 
 //    root.appendChild( document.createTextNode(s"$$${cell.id.toString} = ") )
 
@@ -136,7 +136,7 @@ case class Spreadsheet(m: Int, n: Int, root: Element) {
 
     def putValueChangedBorder() = {
       output.classList.add("value-changed")
-      setTimeout(350 millis) {
+      setTimeout(250 millis) {
         output.classList.remove("value-changed")
       }
     }

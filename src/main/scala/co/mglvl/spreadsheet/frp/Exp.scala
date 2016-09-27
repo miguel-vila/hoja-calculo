@@ -1,10 +1,9 @@
 package co.mglvl.spreadsheet.frp
 
-case class Exp[+A](thunk: () => (A, Set[Cell[_]])) extends AnyRef {
+case class Exp[+A](thunk: () => (A, Set[Cell])) extends AnyRef {
 
-  def apply(): (A, Set[Cell[_]]) = thunk()
+  def apply(): (A, Set[Cell]) = thunk()
 
-  // Necesario?
   def map[B](f: A => B): Exp[B] = Exp { () =>
     val (a,rs) = thunk()
     (f(a), rs)
@@ -25,7 +24,7 @@ case class Exp[+A](thunk: () => (A, Set[Cell[_]])) extends AnyRef {
 
 object Exp {
 
-  def unit[A](a: A): Exp[A] = Exp( () => (a,Set.empty[Cell[_]]) )
+  def unit[A](a: A): Exp[A] = Exp( () => (a,Set.empty[Cell]) )
 
   def map2[A,B,C](a: Exp[A], b: Exp[B])(f: (A,B) => C): Exp[C] =
       for {

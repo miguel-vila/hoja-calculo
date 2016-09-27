@@ -1,21 +1,21 @@
 package co.mglvl.spreadsheet.frp
 
-class Cell[A](
+class Cell(
   val id: String,
-  private var code: Exp[A],
-  private var _value: Option[A],
-  var reads: Set[Cell[_]],
-  var observers: Set[Cell[_]]
+  private var code: Exp[Float],
+  private var _value: Option[Float],
+  var reads: Set[Cell],
+  var observers: Set[Cell]
   ) {
 
   override def equals(o: Any): Boolean = o match {
-    case cell: Cell[A] => cell.id == id
+    case cell: Cell => cell.id == id
     case _ => false
   }
 
   override def hashCode() = id.hashCode()
 
-  def get(): Exp[A] = Exp { () =>
+  def get(): Exp[Float] = Exp { () =>
     _value match {
       case Some(a) => (a, Set(this))
       case None =>
@@ -29,7 +29,7 @@ class Cell[A](
     }
   }
 
-  def set(exp: Exp[A]): Unit = {
+  def set(exp: Exp[Float]): Unit = {
     invalidate()
     code = exp
     update()
@@ -49,11 +49,11 @@ class Cell[A](
     observers.foreach(_.invalidateObservedValue())
   }
 
-  private def removeObserver(cell: Cell[_]): Unit = {
+  private def removeObserver(cell: Cell): Unit = {
     observers = observers - cell
   }
 
-  var listeners = List.empty[A => Unit]
+  var listeners = List.empty[Float => Unit]
 
   private def update(): Unit = {
     val newValue = get().run
@@ -61,7 +61,7 @@ class Cell[A](
     observers foreach (_.update())
   }
 
-  def addListener(f: A => Unit): Unit = {
+  def addListener(f: Float => Unit): Unit = {
     listeners = f :: listeners
   }
 
@@ -69,7 +69,7 @@ class Cell[A](
 
 object Cell {
 
-  def apply[A](id: String, exp: Exp[A]): Cell[A] =
+  def apply(id: String, exp: Exp[Float]): Cell =
     new Cell(
       id = id,
       code = exp,

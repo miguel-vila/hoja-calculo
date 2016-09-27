@@ -1,20 +1,16 @@
 package co.mglvl.spreadsheet.interpreter
 
-sealed trait LiteralValue
-case class FloatValue(value: Float) extends AnyRef with LiteralValue {
+sealed trait Expression
+case class FloatValue(value: Float) extends AnyRef with Expression {
   def +(other: FloatValue)  = FloatValue(value + other.value)
   def *(other: FloatValue)  = FloatValue(value * other.value)
 
   override def toString()   = value.toString
 }
-
-sealed trait Expression[+L<:LiteralValue]
-sealed trait FloatExpression extends Expression[FloatValue]
-case class CellReference(id: String) extends FloatExpression
-case class LiteralFloat(value: FloatValue) extends FloatExpression
-sealed trait BinaryOp extends FloatExpression {
-  def left: FloatExpression
-  def right: FloatExpression
+case class CellReference(id: String) extends Expression
+sealed trait BinaryOp extends Expression {
+  def left: Expression
+  def right: Expression
 }
-case class Add(left: FloatExpression, right: FloatExpression) extends BinaryOp
-case class Multiply(left: FloatExpression, right: FloatExpression) extends BinaryOp
+case class Add(left: Expression, right: Expression) extends BinaryOp
+case class Multiply(left: Expression, right: Expression) extends BinaryOp
