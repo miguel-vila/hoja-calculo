@@ -1,4 +1,4 @@
-enablePlugins(JavaAppPackaging)
+enablePlugins(JavaServerAppPackaging)
 
 lazy val commonSettings = Seq(
   version := "0.0.0",
