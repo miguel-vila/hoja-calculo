@@ -12,9 +12,9 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val floatNumber: Parser[FloatValue] = floatingPointNumber.map(s => FloatValue(s.toFloat))
 
-  val reference = '$' ~> regex("[A-Z]+\\d+".r) map { ref: String =>
-    val column = (ref.charAt(0) - 'A').toInt
-    val row = (ref.charAt(1) - '0').toInt - 1
+  val reference = ( '$' ~> regex("[A-Z]".r) ~ regex("\\d".r) ) map { case colstr ~ rowstr =>
+    val column = (colstr.charAt(0) - 'A').toInt
+    val row = (rowstr.charAt(0) - '0').toInt - 1
     new CellReference(CellId(row, column))
   }
 
@@ -26,7 +26,12 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val term: Parser[Expression] = chainl1(factor, multOp)
 
-  val expression: Parser[Expression] = chainl1(term, addOp)
+  val string: Parser[StringValue] = (regex("[A-Za-z]*".r)).map{ case s => println(s); StringValue( s) }
+
+  val expression: Parser[Expression] =
+    ( '=' ~> chainl1(term, addOp)) |
+      floatNumber |
+      string
 
   def parse(str: String): ParseResult[Expression] = parseAll(expression, str)
 

@@ -1,11 +1,12 @@
 package co.mglvl.spreadsheet.frp
 
 import co.spreadsheet.CellId
+import co.mglvl.spreadsheet.interpreter.Value
 
 class Cell(
   val id: CellId,
-  private var code: Exp[Float],
-  private var _value: Option[Float],
+  private var code: Exp[Value],
+  private var _value: Option[Value],
   var reads: Set[Cell],
   var observers: Set[Cell]
   ) {
@@ -17,7 +18,7 @@ class Cell(
 
   override def hashCode() = id.hashCode()
 
-  def get(): Exp[Float] = Exp { () =>
+  def get(): Exp[Value] = Exp { () =>
     _value match {
       case Some(a) => (a, Set(this))
       case None =>
@@ -31,7 +32,7 @@ class Cell(
     }
   }
 
-  def set(exp: Exp[Float]): Unit = {
+  def set(exp: Exp[Value]): Unit = {
     invalidate()
     code = exp
     update()
@@ -55,7 +56,7 @@ class Cell(
     observers = observers - cell
   }
 
-  var listeners = List.empty[Float => Unit]
+  var listeners = List.empty[Value => Unit]
 
   private def update(): Unit = {
     val newValue = get().run
@@ -63,7 +64,7 @@ class Cell(
     observers foreach (_.update())
   }
 
-  def addListener(f: Float => Unit): Unit = {
+  def addListener(f: Value => Unit): Unit = {
     listeners = f :: listeners
   }
 
@@ -71,7 +72,7 @@ class Cell(
 
 object Cell {
 
-  def apply(id: CellId, exp: Exp[Float]): Cell =
+  def apply(id: CellId, exp: Exp[Value]): Cell =
     new Cell(
       id = id,
       code = exp,

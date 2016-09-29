@@ -2,7 +2,7 @@ package co.mglvl.spreadsheet.ui
 
 import co.spreadsheet._
 import co.mglvl.spreadsheet.frp.{Exp, Cell}
-import co.mglvl.spreadsheet.interpreter.{FloatValue, Interpreter}
+import co.mglvl.spreadsheet.interpreter.{FloatValue, StringValue, Interpreter}
 import co.mglvl.spreadsheet.parsing.Parser
 import Parser.{ Success, Failure , Error }
 
@@ -24,7 +24,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
 
   private val cells = Vector.tabulate(m,n) { (i,j) =>
     val wstr = spreadsheet.content(i)(j)
-    Cell( CellId(i,j), Exp.unit(0.0f) )
+    Cell( CellId(i,j), Exp.unit(StringValue("")) )
   }
 
   private val spreadsheetCells = for {
@@ -34,7 +34,9 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       (cell,j) <- row zipWithIndex
     } yield {
       val wstring = spreadsheet.content(i)(j)
-      SpreadsheetCell(cell = cell, wstring = wstring)
+      val spcell = SpreadsheetCell(cell = cell, wstring = wstring)
+      spcell.evaluate()
+      spcell
     }
   }
 
@@ -62,7 +64,6 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     htmlElement.addEventListener("input", onChange _)
 
     def setPointedCell(cell: SpreadsheetCell) = {
-      htmlElement.placeholder = ""
       htmlElement.readOnly = false
       pointedCell.foreach(_.htmlElement.classList.remove("editing-cell"))
       htmlElement.value = cell.expression
@@ -72,8 +73,12 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
 
     def onChange(event: dom.KeyboardEvent) = {
       pointedCell.foreach {
-        _.changeExpression(htmlElement.value, broadcast = true)
+        _.processUserInput(htmlElement.value)
       }
+    }
+
+    def setText(text: String): Unit = {
+      htmlElement.value = text
     }
 
   }
@@ -96,9 +101,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     }
 
     output.addEventListener("click", { _: dom.Event =>
-                              editCellInput.setPointedCell(this)
-                            }
-    )
+                              editCellInput.setPointedCell(this) } )
 
     def htmlElement = output
 
@@ -114,43 +117,45 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       }
     }
 
-    def changeExpression(newExpression: String, broadcast: Boolean) = {
-      println(s"old exp = $expression")
-      if(newExpression.trim != "" && expression != newExpression) {
-        if(broadcast) {
-          val (op, newWstr) = Utils.findOp(expression, newExpression) match {
-            case Insert(char,pos) =>
-              println(s"inserting $char at pos $pos for wstring = '${wstring.text}''")
-              wstring.insert(char,pos)
-            case Delete(pos)      =>
-              println(s"deleting char at pos $pos for wstring = '${wstring.text}''}")
-              wstring.delete(pos)
+    def evaluate() = {
+      Parser.parse(expression) match {
+        case Success(ast,_) =>
+          try {
+            val newExp = Interpreter.evaluate(ast)(getCell)
+            cell.set( newExp )
+          } catch {
+            case t: Throwable =>
+              println(s"Error: $t")
+              t.printStackTrace()
+              output.value = "Evaluation error"
           }
-          println(s"Previous wstring = ${wstring.text}")
-          wstring = newWstr
-          println(s"Next wstring = ${wstring.text}")
-          broadcastOperation(SpreadSheetOp(cell.id, op))
-        }
-        expression = newExpression
+        case Failure(msg,_) =>
+          println(s"Failure = $msg")
+          output.value = "Parse error"
+        case Error(msg,_) =>
+          println(s"Error = $msg")
+          output.value = "Parse error"
+      }
+    }
 
-        Parser.parse(newExpression) match {
-          case Success(ast,_) =>
-            try {
-              val newExp = Interpreter.evaluate(ast)(getCell)
-              cell.set( newExp )
-            } catch {
-              case t: Throwable =>
-                println(s"Error: $t")
-                t.printStackTrace()
-                output.value = "Evaluation error"
-            }
-          case Failure(msg,_) =>
-            println(s"Failure = $msg")
-            output.value = "Parse error"
-          case Error(msg,_) =>
-            println(s"Error = $msg")
-            output.value = "Parse error"
+    def processUserInput(newExpression: String) = {
+      println(s"old exp = $expression")
+      if(expression != newExpression) {
+        val (op, newWstr) = Utils.findOp(expression, newExpression) match {
+          case Insert(char,pos) =>
+            println(s"inserting $char at pos $pos for wstring = '${wstring.text}''")
+            wstring.insert(char,pos)
+          case Delete(pos)      =>
+            println(s"deleting char at pos $pos for wstring = '${wstring.text}''}")
+            wstring.delete(pos)
         }
+        println(s"Previous wstring = ${wstring.text}")
+        wstring = newWstr
+        expression = newExpression
+        println(s"Next wstring = ${wstring.text}")
+        broadcastOperation(SpreadSheetOp(cell.id, op))
+
+        evaluate()
       }
     }
 
@@ -158,7 +163,11 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       val (executedOps, newWstring) = wstring.integrate(operation)
       println(s"executedOps = ${executedOps.size}")
       wstring = newWstring
-      changeExpression( wstring.text, broadcast = false )
+      expression = wstring.text
+      if(editCellInput.pointedCell == Some(this)) {
+        editCellInput.setText(expression)
+      }
+      evaluate()
     }
 
   }

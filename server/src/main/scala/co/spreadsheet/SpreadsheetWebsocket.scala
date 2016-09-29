@@ -40,7 +40,7 @@ class SpreadsheetWebsocket {
 
   private val ops = topic[SpreadSheetOp]()
 
-  def encodeOp(op: SpreadSheetOp): Text = Text(write(op))
+  def encodeOp(op: SpreadSheetOp): Text = Text(write(ClientMessage(None, Some(op))))
 
   def updateSpreadSheet(op: SpreadSheetOp): SpreadSheetOp = {
     sp.integrateOperation(op)
@@ -51,7 +51,6 @@ class SpreadsheetWebsocket {
     println(s"Failed to consume message: $err")
     Task.fail(err)
   }
-
 
   def parse(json: String): Throwable \/ SpreadSheetOp =
     \/.fromTryCatchNonFatal { read[SpreadSheetOp](json) }
@@ -70,8 +69,8 @@ class SpreadsheetWebsocket {
       val clientId = SiteId.random
       val clientCopy = sp.withSiteId(clientId)
 
-      val otherUserOps = ops.subscribe.filter(_.from != clientId)
-      val src = Process.emit(Text(write(clientCopy))) ++ otherUserOps.map(encodeOp)
+      val otherUserOps = ops.subscribe//.filter(_.from != clientId)
+      val src = Process.emit(Text(write(ClientMessage(Some(clientCopy), None)))) ++ otherUserOps.map(encodeOp)
       val snk = ops.publish.map(safeConsume).onComplete(cleanup)
 
       WS(Exchange(src, snk))

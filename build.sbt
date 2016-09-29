@@ -96,7 +96,6 @@ lazy val spreadSheet = crossProject
       "com.dallaway.richard" %%% "woot-model" % "0.1.1",
       "com.lihaoyi" %%% "upickle" % "0.4.1",
       "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
-//        "org.scalatest" %%% "scalatest" % "2.2.4" % "test"
     ))
   .jvmSettings(
     libraryDependencies ++= Seq(
