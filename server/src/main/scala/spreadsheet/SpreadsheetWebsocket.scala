@@ -70,7 +70,10 @@ class SpreadsheetWebsocket {
       val clientCopy = sp.withSiteId(clientId)
 
       val otherUserOps = ops.subscribe//.filter(_.from != clientId)
-      val src = Process.emit(Text(write(ClientMessage(Some(clientCopy), None)))) ++ otherUserOps.map(encodeOp)
+      println(s"about to serialize $clientCopy")
+      val serializedCopy = write(ClientMessage(Some(clientCopy), None))
+      println(s"serialized $serializedCopy")
+      val src = Process.emit(Text( serializedCopy )) ++ otherUserOps.map(encodeOp)
       val snk = ops.publish.map(safeConsume).onComplete(cleanup)
 
       WS(Exchange(src, snk))
