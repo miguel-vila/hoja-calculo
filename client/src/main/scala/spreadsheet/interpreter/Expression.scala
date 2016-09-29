@@ -1,6 +1,6 @@
-package co.mglvl.spreadsheet.interpreter
+package spreadsheet.interpreter
 
-import co.spreadsheet.CellId
+import spreadsheet.CellId
 
 sealed trait Expression
 sealed trait Value {

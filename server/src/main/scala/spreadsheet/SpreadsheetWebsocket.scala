@@ -1,4 +1,4 @@
-package co.spreadsheet
+package spreadsheet
 
 import org.http4s._
 import org.http4s.server.ServerApp

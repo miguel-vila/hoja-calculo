@@ -1,4 +1,4 @@
-package co.spreadsheet
+package spreadsheet
 
 import woot._
 

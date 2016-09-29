@@ -1,4 +1,4 @@
-package co.spreadsheet
+package spreadsheet
 
 import CellId._
 
@@ -8,7 +8,6 @@ case class CellId(
 ) {
 
   override def toString(): String = s"${columnChar(column)}$row"
-
 
 }
 

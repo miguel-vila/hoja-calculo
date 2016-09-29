@@ -1,7 +1,7 @@
-package co.mglvl.spreadsheet
+package spreadsheet
 
-import co.mglvl.spreadsheet.ui.Spreadsheet
-import co.spreadsheet._
+import spreadsheet.ui.Spreadsheet
+import spreadsheet._
 
 import scala.scalajs.js
 import org.scalajs.dom

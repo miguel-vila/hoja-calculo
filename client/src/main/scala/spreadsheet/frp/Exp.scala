@@ -1,4 +1,4 @@
-package co.mglvl.spreadsheet.frp
+package spreadsheet.frp
 
 case class Exp[+A](thunk: () => (A, Set[Cell])) extends AnyRef {
 

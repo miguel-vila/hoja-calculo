@@ -1,9 +1,9 @@
-package co.mglvl.spreadsheet.ui
+package spreadsheet.ui
 
-import co.spreadsheet._
-import co.mglvl.spreadsheet.frp.{Exp, Cell}
-import co.mglvl.spreadsheet.interpreter.{FloatValue, StringValue, Interpreter}
-import co.mglvl.spreadsheet.parsing.Parser
+import spreadsheet._
+import spreadsheet.frp.{Exp, Cell}
+import spreadsheet.interpreter.{FloatValue, StringValue, Interpreter}
+import spreadsheet.parsing.Parser
 import Parser.{ Success, Failure , Error }
 
 import org.scalajs.dom

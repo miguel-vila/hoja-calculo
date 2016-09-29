@@ -1,4 +1,4 @@
-package co.spreadsheet
+package spreadsheet
 
 case class ClientMessage(
   cells: Option[SpreadSheetContent],

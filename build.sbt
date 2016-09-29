@@ -45,7 +45,7 @@ lazy val root = project.in(file(".")).
   .settings(
     publish := {},
     publishLocal := {},
-    mainClass in Compile := Some("co.spreadsheet.Main")
+    mainClass in Compile := Some("spreadsheet.Main")
   )
 
 lazy val http4sVersion = "0.14.7"
@@ -80,15 +80,6 @@ lazy val client = project.in(file("client"))
     "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2"
   ))
   .dependsOn(spreadSheetJS)
-
-lazy val tests = project.in(file("tests"))
-  .settings(commonSettings: _*)
-  .settings(
-  persistLauncher in Compile := true,
-  libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
-  ))
-  .dependsOn(spreadSheetJVM)
 
 lazy val spreadSheet = crossProject
   .settings(commonSettings: _*)

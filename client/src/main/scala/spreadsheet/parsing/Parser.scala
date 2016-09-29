@@ -1,7 +1,7 @@
-package co.mglvl.spreadsheet.parsing
+package spreadsheet.parsing
 
-import co.mglvl.spreadsheet.interpreter._
-import co.spreadsheet.CellId
+import spreadsheet.interpreter._
+import spreadsheet.CellId
 import scala.util.parsing.combinator._
 
 object Parser extends JavaTokenParsers with RegexParsers {

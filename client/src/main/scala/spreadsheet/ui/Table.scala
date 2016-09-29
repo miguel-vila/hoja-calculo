@@ -1,4 +1,4 @@
-package co.mglvl.spreadsheet.ui
+package spreadsheet.ui
 
 import org.scalajs.dom
 import org.scalajs.dom.html

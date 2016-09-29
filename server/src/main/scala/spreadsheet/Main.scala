@@ -1,17 +1,25 @@
-package co.spreadsheet
+package spreadsheet
 
 import org.http4s._, org.http4s.dsl._
 import org.http4s.server.blaze._
 import org.http4s.server.{Server, ServerApp}
 import scalaz.concurrent.Task
 
-object Main extends ServerApp {
+class Main {
 
-  val spreadSheetWS = new SpreadsheetWebsocket()
+  def main(args: Array[String]): Unit = {
 
-  override def server(args: List[String]): Task[Server] = {
+    val spreadSheetWS = new SpreadsheetWebsocket()
+
+    val port = sys.env.getOrElse("PORT", "5000").toInt
+
+    val staticFilesService = HttpService {
+      case req if req.pathInfo == "/"  => req.serve("/index.html")
+      case req => req.serve()
+    }
+
     BlazeBuilder
-      .bindHttp(80, "localhost")
+      .bindHttp(port, "0.0.0.0")
       .mountService(staticFilesService, "/")
       .mountService(spreadSheetWS.route, "/ws")
       .start
@@ -26,11 +34,5 @@ object Main extends ServerApp {
     }
 
   }
-
-  val staticFilesService = HttpService {
-    case req if req.pathInfo == "/"  => req.serve("/index.html")
-    case req => req.serve()
-  }
-
 
 }

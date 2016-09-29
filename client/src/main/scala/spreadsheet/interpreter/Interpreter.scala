@@ -1,7 +1,7 @@
-package co.mglvl.spreadsheet.interpreter
+package spreadsheet.interpreter
 
-import co.mglvl.spreadsheet.frp.{Cell, Exp}
-import co.spreadsheet.CellId
+import spreadsheet.frp.{Cell, Exp}
+import spreadsheet.CellId
 
 object Interpreter {
 

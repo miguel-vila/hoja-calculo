@@ -1,7 +1,7 @@
-package co.mglvl.spreadsheet.frp
+package spreadsheet.frp
 
-import co.spreadsheet.CellId
-import co.mglvl.spreadsheet.interpreter.Value
+import spreadsheet.CellId
+import spreadsheet.interpreter.Value
 
 class Cell(
   val id: CellId,
