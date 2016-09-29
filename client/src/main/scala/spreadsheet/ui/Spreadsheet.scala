@@ -8,6 +8,7 @@ import Parser.{ Success, Failure , Error }
 
 import org.scalajs.dom
 import org.scalajs.dom.html
+import org.scalajs.dom.raw.MouseEvent
 import dom.document
 import org.scalajs.dom.raw.Element
 import scala.scalajs.js.timers._
@@ -21,6 +22,37 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
   val m = spreadsheet.content.size
   val n = spreadsheet.content(0).size
   val siteId = spreadsheet.siteId
+
+  root.addEventListener("keydown", handleKeypresses _)
+
+  def dir(keycode: Int): (Int,Int) = keycode match {
+    case 37 => (0,-1)
+    case 39 => (0,+1)
+    case 38 => (-1,0)
+    case 40 => (+1,0)
+    case _  => (0, 0)
+  }
+
+  def handleKeypresses(event: dom.KeyboardEvent) = {
+    val (dx,dy) = dir(event.keyCode)
+
+    editCellInput.pointedCell.map { spreadsheetCell =>
+      val CellId(row, column) = spreadsheetCell.cell.id
+      val (x,y) = (row+dx,column+dy)
+      println(s"${(x,y)}")
+      //val event = new MouseEvent()
+      //event.window = dom.window
+      //event.bubbles = false
+      //spreadsheetCells(x)(y).htmlElement.dispatchEvent(event)
+      val newCellOpt = for {
+        row <- spreadsheetCells.lift(x)
+        cell <- row.lift(y)
+      } yield cell
+      newCellOpt.foreach { cell =>
+        editCellInput.setPointedCell( cell )
+      }
+    }
+  }
 
   private val cells = Vector.tabulate(m,n) { (i,j) =>
     val wstr = spreadsheet.content(i)(j)
@@ -96,7 +128,6 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       elem.`type` = "text"
       elem.readOnly = true
       elem.classList.add("form-control")
-      root.appendChild(elem)
       elem
     }
 
