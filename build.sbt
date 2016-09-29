@@ -1,60 +1,109 @@
-enablePlugins(ScalaJSPlugin)
-
-name := "scala-js-spreadsheet"
-
-version := "0.0.0"
-
-persistLauncher in Compile := true
-
-scalacOptions ++= Seq(
-  "-deprecation",
-  "-encoding", "UTF-8",
-  "-feature",//para poder ver feature warnings al compilar
-  "-language:postfixOps", //para cosas como '5 seconds'
-  "-language:implicitConversions",
-  "-language:existentials",
-  "-language:higherKinds",
-  "-unchecked",
-  "-language:reflectiveCalls", // para poder utilizar el .$each de la librería de mongodb
-  "-Xfatal-warnings",
-  "-Xlint",
-  "-Yno-adapted-args",
-  "-Ywarn-dead-code",        // N.B. doesn't work well with the ??? hole
-  //"-Ywarn-numeric-widen",
-  //"-Ywarn-value-discard", // No muy buena idea combinar esto con akka
-  "-Xfuture"
-)
-
-resolvers ++= Seq(
+lazy val commonSettings = Seq(
+  version := "0.0.0",
+  scalaVersion := "2.11.7",
+  scalacOptions ++= Seq(
+    "-deprecation",
+    "-encoding", "UTF-8",
+    "-feature",//para poder ver feature warnings al compilar
+    "-language:postfixOps", //para cosas como '5 seconds'
+    "-language:implicitConversions",
+    "-language:existentials",
+    "-language:higherKinds",
+    "-unchecked",
+    "-language:reflectiveCalls",
+    "-Xfatal-warnings",
+    "-Xlint",
+    "-Yno-adapted-args",
+    "-Ywarn-dead-code",        // N.B. doesn't work well with the ??? hole
+                               //"-Ywarn-numeric-widen",
+                               //"-Ywarn-value-discard", // No muy buena idea combinar esto con akka
+    "-Xfuture"
+  ),
+  resolvers ++= Seq(
     "Sonatype Releases"   at "http://oss.sonatype.org/content/repositories/releases",
     "Sonatype Snapshots"  at "http://oss.sonatype.org/content/repositories/snapshots",
     "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
-    "spray repo"          at "http://repo.spray.io"
+    "miguel's maven repo" at "http://dl.bintray.com/miguelvilag/maven/"
+  )
+)
+
+val http4s = Seq(
+  libraryDependencies ++= Seq(
+    "org.http4s" %% "http4s-dsl" % http4sVersion,
+    "org.http4s" %% "http4s-blaze-server" % http4sVersion,
+    "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+    "org.slf4j" % "slf4j-simple" % "1.7.21"
+  )
 )
 
 lazy val root = project.in(file(".")).
-  aggregate(spreadSheetJS, spreadSheetJVM).
-  settings(
+  settings(commonSettings: _*)
+  .aggregate(client, server, spreadSheetJS, spreadSheetJVM)
+  .dependsOn(client, server, spreadSheetJS, spreadSheetJVM)
+  .settings(
     publish := {},
     publishLocal := {},
     mainClass in Compile := Some("co.spreadsheet.Main")
   )
 
-lazy val spreadSheet = crossProject.in(file(".")).
-  settings(
-    name := "spreadsheet",
-    version := "0.0.1"
-  ).
-  jvmSettings(
+lazy val http4sVersion = "0.14.7"
+
+lazy val server = project.in(file("server"))
+  .settings(commonSettings: _*)
+  .settings(
+  name := "spreadsheet-server",
+  persistLauncher := true,
+  libraryDependencies ++= Seq(
+    "org.http4s" %% "http4s-dsl" % http4sVersion,
+    "org.http4s" %% "http4s-blaze-server" % http4sVersion,
+    "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+    "org.slf4j" % "slf4j-simple" % "1.7.21"
+  ),
+  resources in Compile ++= {
+    def andSourceMap(aFile: java.io.File) = Seq(
+      aFile,
+      file(aFile.getAbsolutePath + ".map")
+    )
+    andSourceMap((fastOptJS in (client, Compile)).value.data)
+  })
+  .dependsOn(spreadSheetJVM)
+
+lazy val client = project.in(file("client"))
+  .settings(commonSettings: _*)
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+  persistLauncher in Compile := true,
+  libraryDependencies ++= Seq(
+	  "org.scala-js" %%% "scalajs-dom" % "0.9.1",
+    "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2"
+  ))
+  .dependsOn(spreadSheetJS)
+
+lazy val tests = project.in(file("tests"))
+  .settings(commonSettings: _*)
+  .settings(
+  persistLauncher in Compile := true,
+  libraryDependencies ++= Seq(
+    "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
+  ))
+  .dependsOn(spreadSheetJVM)
+
+lazy val spreadSheet = crossProject
+  .settings(commonSettings: _*)
+  .settings(
+    name := "spreadsheet-shared",
+    libraryDependencies ++= Seq(
+      "com.dallaway.richard" %%% "woot-model" % "0.1.1",
+      "com.lihaoyi" %%% "upickle" % "0.4.1",
+      "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
+//        "org.scalatest" %%% "scalatest" % "2.2.4" % "test"
+    ))
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+    )
   ).
   jsSettings(
-    scalaVersion := "2.11.8",
-    mainClass in Compile := Some("co.mglvl.spreadsheet.Main"),
-    libraryDependencies ++= Seq(
-	    "org.scala-js" %%% "scalajs-dom" % "0.9.1",
-      "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2"
-    )
   )
 
-lazy val spreadSheetJVM = spreadSheet.jvm
-lazy val spreadSheetJS = spreadSheet.js
+lazy val spreadSheetJVM: Project = spreadSheet.jvm
+lazy val spreadSheetJS : Project = spreadSheet.js
