@@ -13,7 +13,8 @@ object Main extends js.JSApp {
 
   def main(): Unit = {
     val cellsElem = document.getElementById("cells")
-    val ws = new dom.WebSocket("ws://localhost:8082/ws/edit/abc")
+    val url = s"ws://${dom.window.location.host}/ws/edit/abc"
+    val ws = new dom.WebSocket(url)
     def broadcastCellOperation(cellOp: SpreadSheetOp): Unit = {
       println(s"broadcasting $cellOp")
       ws.send( write(cellOp) )
