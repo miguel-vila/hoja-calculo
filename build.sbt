@@ -45,7 +45,7 @@ lazy val root = project.in(file(".")).
   .settings(
     publish := {},
     publishLocal := {},
-    mainClass in Compile := Some("spreadsheet.Main")
+    mainClass in Compile := Some("spreadsheet.Server")
   )
 
 lazy val http4sVersion = "0.14.7"

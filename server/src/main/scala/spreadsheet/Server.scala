@@ -2,13 +2,12 @@ package spreadsheet
 
 import org.http4s._, org.http4s.dsl._
 import org.http4s.server.blaze._
-import org.http4s.server.{Server, ServerApp}
+import org.http4s.server.{ServerApp, Server => Http4sServer}
 import scalaz.concurrent.Task
 
-class Main {
+object Server extends ServerApp {
 
-  def main(args: Array[String]): Unit = {
-
+  override def server(args: List[String]): Task[Http4sServer] = {
     val spreadSheetWS = new SpreadsheetWebsocket()
 
     val port = sys.env.getOrElse("PORT", "5000").toInt
