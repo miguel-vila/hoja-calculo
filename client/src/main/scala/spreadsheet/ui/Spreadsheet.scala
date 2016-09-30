@@ -83,7 +83,12 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     rowText = i => (i+1).toString(),
     tableElement = (i,j) => spreadsheetCells(i)(j).htmlElement
   )
-  root.appendChild(table)
+  root.appendChild {
+    val div = document.createElement("div")
+    div.classList.add("table-container")
+    div.appendChild(table)
+    div
+  }
 
   private case class EditCellInput(var pointedCell: Option[SpreadsheetCell]) {
 
@@ -116,6 +121,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
   }
 
   private def getCell(cellId: CellId): Cell = {
+    println(s"getting cell ${cellId.row} ${cellId.column}")
     cells(cellId.row)(cellId.column)
   }
 
@@ -127,7 +133,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       val elem = document.createElement("input").asInstanceOf[html.Input]
       elem.`type` = "text"
       elem.readOnly = true
-      elem.classList.add("form-control")
+      elem.classList.add("cell")
       elem
     }
 

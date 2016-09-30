@@ -23,3 +23,8 @@ sealed trait BinaryOp extends Expression {
 }
 case class Add(left: Expression, right: Expression) extends BinaryOp
 case class Multiply(left: Expression, right: Expression) extends BinaryOp
+
+case class CellsRange(start: CellId, end: CellId) {
+  require(start <= end)
+}
+case class SumInRange(range: CellsRange) extends Expression

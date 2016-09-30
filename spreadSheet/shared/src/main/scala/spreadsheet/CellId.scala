@@ -7,7 +7,11 @@ case class CellId(
   column: Int
 ) {
 
-  override def toString(): String = s"${columnChar(column)}$row"
+  override def toString(): String =
+    s"${columnChar(column)}$row"
+
+  def <=(other: CellId): Boolean =
+    row <= other.row && column <= other.column
 
 }
 

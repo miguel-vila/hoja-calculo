@@ -15,3 +15,20 @@
     -moz-box-shadow: 0 0 8px rgba(121,227,86,.6);
     box-shadow: 0 0 8px rgba(121,227,86,1) !important;
 }
+
+.border-cell {
+    background-color: #F0F0F0;
+    text-align: center;
+}
+
+.table-bordered tbody tr td {
+    border: 0px solid #ddd !important;
+}
+
+.table-container {
+    overflow: scroll;
+}
+
+.cell {
+    width: 75px;
+}

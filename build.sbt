@@ -29,6 +29,8 @@ lazy val commonSettings = Seq(
   )
 )
 
+lazy val http4sVersion = "0.14.7"
+
 val http4s = Seq(
   libraryDependencies ++= Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -48,19 +50,12 @@ lazy val root = project.in(file(".")).
     mainClass in Compile := Some("spreadsheet.Server")
   )
 
-lazy val http4sVersion = "0.14.7"
-
 lazy val server = project.in(file("server"))
   .settings(commonSettings: _*)
   .settings(
   name := "spreadsheet-server",
   persistLauncher := true,
-  libraryDependencies ++= Seq(
-    "org.http4s" %% "http4s-dsl" % http4sVersion,
-    "org.http4s" %% "http4s-blaze-server" % http4sVersion,
-    "org.http4s" %% "http4s-blaze-client" % http4sVersion,
-    "org.slf4j" % "slf4j-simple" % "1.7.21"
-  ),
+  libraryDependencies ++= http4s,
   resources in Compile ++= {
     def andSourceMap(aFile: java.io.File) = Seq(
       aFile,

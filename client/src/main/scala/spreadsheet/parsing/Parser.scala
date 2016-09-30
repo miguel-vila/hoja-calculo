@@ -12,13 +12,21 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val floatNumber: Parser[FloatValue] = floatingPointNumber.map(s => FloatValue(s.toFloat))
 
-  val reference = ( '$' ~> regex("[A-Z]".r) ~ regex("\\d".r) ) map { case colstr ~ rowstr =>
+  val cellId = ( '$' ~> regex("[A-Z]".r) ~ regex("\\d+".r) ) map { case colstr ~ rowstr =>
     val column = (colstr.charAt(0) - 'A').toInt
-    val row = (rowstr.charAt(0) - '0').toInt - 1
-    new CellReference(CellId(row, column))
+    val row = Integer.parseInt(rowstr) - 1
+    CellId(row, column)
   }
 
-  val factor: Parser[Expression] = ws ~> (floatNumber | reference) <~ ws
+  val reference = cellId map (CellReference.apply)
+
+  val range = ( (cellId <~ ':') ~ cellId) map { case ref1 ~ ref2 =>
+    CellsRange(ref1,ref2)
+  }
+
+  val sumRange = ("sum" ~> '(' ~> range <~ ')') map (SumInRange.apply)
+
+  val factor: Parser[Expression] = ws ~> (floatNumber | reference | sumRange) <~ ws
 
   val addOp = "+" ^^^ (Add.apply(_,_))
 

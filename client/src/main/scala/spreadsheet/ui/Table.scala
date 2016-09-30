@@ -27,6 +27,7 @@ object Table {
     for { j <- (0 to n-1) } {
       htr.appendChild {
         val th = document.createElement("th")
+        th.classList.add("border-cell")
         th.appendChild(document.createTextNode(columnText(j)))
         th
       }
@@ -37,6 +38,7 @@ object Table {
       val th = document.createElement("th")
       th.setAttribute("scope", "row")
       th.appendChild(document.createTextNode( rowText(i)  ))
+      th.classList.add("border-cell")
       tr.appendChild(th)
       for { j <- (0 to n-1) } {
         val td = document.createElement("td")

@@ -36,7 +36,7 @@ class SpreadsheetWebsocket {
 
   //val spreadSheets: HashMap[String, SpreadSheetContent] = HashMap.empty
 
-  val sp = SpreadSheetContent(SiteId("server"), "test", 8, 5)
+  val sp = SpreadSheetContent(SiteId("server"), "test", 26, 20)
 
   private val ops = topic[SpreadSheetOp]()
 
@@ -70,9 +70,9 @@ class SpreadsheetWebsocket {
       val clientCopy = sp.withSiteId(clientId)
 
       val otherUserOps = ops.subscribe//.filter(_.from != clientId)
-      println(s"about to serialize $clientCopy")
+      //println(s"about to serialize $clientCopy")
       val serializedCopy = write(ClientMessage(Some(clientCopy), None))
-      println(s"serialized $serializedCopy")
+      //println(s"serialized $serializedCopy")
       val src = Process.emit(Text( serializedCopy )) ++ otherUserOps.map(encodeOp)
       val snk = ops.publish.map(safeConsume).onComplete(cleanup)
 
