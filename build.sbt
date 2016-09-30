@@ -32,12 +32,10 @@ lazy val commonSettings = Seq(
 lazy val http4sVersion = "0.14.7"
 
 val http4s = Seq(
-  libraryDependencies ++= Seq(
-    "org.http4s" %% "http4s-dsl" % http4sVersion,
-    "org.http4s" %% "http4s-blaze-server" % http4sVersion,
-    "org.http4s" %% "http4s-blaze-client" % http4sVersion,
-    "org.slf4j" % "slf4j-simple" % "1.7.21"
-  )
+  "org.http4s" %% "http4s-dsl" % http4sVersion,
+  "org.http4s" %% "http4s-blaze-server" % http4sVersion,
+  "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+  "org.slf4j" % "slf4j-simple" % "1.7.21"
 )
 
 lazy val root = project.in(file(".")).
