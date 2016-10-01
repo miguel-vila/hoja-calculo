@@ -1,5 +1,3 @@
-enablePlugins(JavaServerAppPackaging)
-
 lazy val commonSettings = Seq(
   version := "0.0.0",
   scalaVersion := "2.11.7",
@@ -45,10 +43,12 @@ lazy val root = project.in(file(".")).
   .settings(
     publish := {},
     publishLocal := {},
-    mainClass in Compile := Some("spreadsheet.Server")
+    mainClass in Compile := Some("spreadsheet.Server"),
+    stage := (stage in (server, Compile)).value
   )
 
 lazy val server = project.in(file("server"))
+  .enablePlugins(JavaServerAppPackaging)
   .settings(commonSettings: _*)
   .settings(
   name := "spreadsheet-server",
@@ -82,12 +82,7 @@ lazy val spreadSheet = crossProject
       "com.dallaway.richard" %%% "woot-model" % "0.1.1",
       "com.lihaoyi" %%% "upickle" % "0.4.1",
       "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
-    ))
-  .jvmSettings(
-    libraryDependencies ++= Seq(
     )
-  ).
-  jsSettings(
   )
 
 lazy val spreadSheetJVM: Project = spreadSheet.jvm
