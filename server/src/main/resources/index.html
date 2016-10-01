@@ -8,10 +8,15 @@
 </head>
 <body>
     <h1>Spreadsheet</h1>
-    <div class="alert alert-danger hidden" role="alert">
+    <div id="messages">
+    </div>
+    <div id="disconnectmessage" class="alert alert-danger hidden" role="alert">
         <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-        <span class="sr-only">Error:</span>
-        Enter a valid email address
+        <strong>Disconnected from the server.</strong>
+        Reconnecting...
+    </div>
+    <div id="connectingmessage" class="alert alert-info hidden" role="alert">
+        <strong>Connecting...</strong>
     </div>
     <div id="spreadsheet">
         <div id="cells"></div>

@@ -16,7 +16,10 @@ import scala.concurrent.duration._
 
 import woot._
 
-case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcastOperation: SpreadSheetOp => Unit) {
+case class Spreadsheet(
+  private var spreadsheet: SpreadSheetContent,
+  broadcastOperation: SpreadSheetOp => Unit
+) {
 
   val m = spreadsheet.content.size
   val n = spreadsheet.content(0).size
@@ -45,7 +48,9 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     editCellInput.setPlaceholder( cell.expression )
   }
 
-  def handleKeypresses(event: dom.KeyboardEvent) = {
+  private var connected = true
+
+  def handleKeypresses(event: dom.KeyboardEvent) = if(connected) {
     //println(s"keycode = ${event.keyCode}")
     if(isDir(event.keyCode) && !editCellInput.isEditing) {
       val (dx,dy) = dir(event.keyCode)
@@ -73,26 +78,36 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
   val ENTER = 13
 
   private val cells = Vector.tabulate(m,n) { (i,j) =>
-    val wstr = spreadsheet.content(i)(j)
     Cell( CellId(i,j), Exp.unit(StringValue("")) )
   }
 
-  private val spreadsheetCells = for {
-    (row,i) <- cells zipWithIndex
-  } yield {
+  def resetSpreadsheetInfo(newSpreadsheet: SpreadSheetContent) = {
+    spreadsheet = newSpreadsheet
     for {
-      (cell,j) <- row zipWithIndex
-    } yield {
+      (row,i) <- spreadsheetCells.zipWithIndex
+      (cell,j) <- row.zipWithIndex
+    } {
       val wstring = spreadsheet.content(i)(j)
-      val spcell = SpreadsheetCell(cell = cell, wstring = wstring)
-      spcell.evaluate()
-      spcell
+      cell.resetValue( wstring )
     }
+  }
+
+  private val spreadsheetCells = for {
+    (row,i) <- cells.zipWithIndex
+  } yield for {
+    (cell,j) <- row.zipWithIndex
+  } yield {
+    val wstring = spreadsheet.content(i)(j)
+    val spcell = SpreadsheetCell(cell = cell, wstring = wstring)
+    spcell.evaluate()
+    spcell
   }
 
   private val editCellInput = new EditCellInput(None)
 
-  root.appendChild(editCellInput.htmlElement)
+  val htmlElement = document.createElement("div")
+
+  htmlElement.appendChild(editCellInput.htmlElement)
 
   spreadsheetCells(0)(0).htmlElement.click()
 
@@ -103,7 +118,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     rowText = i => (i+1).toString(),
     tableElement = (i,j) => spreadsheetCells(i)(j).htmlElement
   )
-  root.appendChild {
+  htmlElement.appendChild {
     val div = document.createElement("div")
     div.classList.add("table-container")
     div.appendChild(table)
@@ -142,7 +157,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       currentCell = None
     }
 
-    def onChange(event: dom.KeyboardEvent) = {
+    def onChange(event: dom.KeyboardEvent) = if(connected) {
       currentCell.foreach {
         _.processUserInput(htmlElement.value)
       }
@@ -150,6 +165,14 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
 
     def setText(text: String): Unit = {
       htmlElement.value = text
+    }
+
+    def disableEdition() = {
+      htmlElement.readOnly = true
+    }
+
+    def enableEdition() = {
+      htmlElement.readOnly = false
     }
 
   }
@@ -163,6 +186,11 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
 
     var expression = wstring.text
 
+    def resetValue(_wstring: WString): Unit = {
+      wstring = _wstring
+      expression = wstring.text
+    }
+
     val output = {
       val elem = document.createElement("input").asInstanceOf[html.Input]
       elem.`type` = "text"
@@ -174,7 +202,10 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     output.addEventListener(
       "click",
       { _: dom.Event =>
-        setCursorCell(this) }
+        if(connected) {
+          setCursorCell(this)
+        }
+      }
     )
 
     def htmlElement = output
@@ -244,11 +275,41 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       evaluate()
     }
 
+    def setDisabledStyle() =
+      htmlElement.classList.add("disabled")
+
+    def removeDisabledStyle() =
+      htmlElement.classList.remove("disabled")
+
   }
 
   def receiveRemoteOperation(cellOp: SpreadSheetOp): Unit = {
     val CellId(row,column) = cellOp.cellId
     spreadsheetCells(row)(column).integrateRemoteOperation(cellOp.op)
+  }
+
+  def disconnectMessageClasses = document.getElementById("disconnectmessage").classList
+
+  def disableEdition(): Unit = {
+    println(s"Disabling edition")
+    connected = false
+    editCellInput.disableEdition()
+    for {
+      row <- spreadsheetCells
+      cell <- row
+    } cell.setDisabledStyle()
+    disconnectMessageClasses.remove("hidden")
+  }
+
+  def enableEdition(): Unit = {
+    println(s"Enabling edition")
+    connected = true
+    editCellInput.enableEdition()
+    for {
+      row <- spreadsheetCells
+      cell <- row
+    } cell.removeDisabledStyle()
+    disconnectMessageClasses.add("hidden")
   }
 
 }
