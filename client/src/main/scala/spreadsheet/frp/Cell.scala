@@ -56,7 +56,7 @@ class Cell(
     observers = observers - cell
   }
 
-  var listeners = List.empty[Value => Unit]
+  private var listeners = List.empty[Value => Unit]
 
   private def update(): Unit = {
     val newValue = get().run

@@ -8,7 +8,6 @@ import Parser.{ Success, Failure , Error }
 
 import org.scalajs.dom
 import org.scalajs.dom.html
-import org.scalajs.dom.raw.MouseEvent
 import dom.document
 import org.scalajs.dom.raw.Element
 import scala.scalajs.js.timers._
@@ -23,7 +22,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
   val n = spreadsheet.content(0).size
   val siteId = spreadsheet.siteId
 
-  root.addEventListener("keydown", handleKeypresses _)
+  document.body.addEventListener("keydown", handleKeypresses _)
 
   def dir(keycode: Int): (Int,Int) = keycode match {
     case 37 => (0,-1)
@@ -33,26 +32,45 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     case _  => (0, 0)
   }
 
-  def handleKeypresses(event: dom.KeyboardEvent) = {
-    val (dx,dy) = dir(event.keyCode)
+  def isDir(keycode: Int): Boolean = 37 <= keycode && keycode <= 40
 
-    editCellInput.pointedCell.map { spreadsheetCell =>
-      val CellId(row, column) = spreadsheetCell.cell.id
-      val (x,y) = (row+dx,column+dy)
-      println(s"${(x,y)}")
-      //val event = new MouseEvent()
-      //event.window = dom.window
-      //event.bubbles = false
-      //spreadsheetCells(x)(y).htmlElement.dispatchEvent(event)
-      val newCellOpt = for {
-        row <- spreadsheetCells.lift(x)
-        cell <- row.lift(y)
-      } yield cell
-      newCellOpt.foreach { cell =>
-        editCellInput.setPointedCell( cell )
+  private var cursorCell = Option.empty[SpreadsheetCell]
+
+  val CURSOR_CLASS = "cursor"
+
+  private def setCursorCell(cell: SpreadsheetCell) = {
+    cursorCell.foreach(_.htmlElement.classList.remove(CURSOR_CLASS))
+    cursorCell = Some(cell)
+    cell.htmlElement.classList.add(CURSOR_CLASS)
+    editCellInput.setPlaceholder( cell.expression )
+  }
+
+  def handleKeypresses(event: dom.KeyboardEvent) = {
+    //println(s"keycode = ${event.keyCode}")
+    if(isDir(event.keyCode) && !editCellInput.isEditing) {
+      val (dx,dy) = dir(event.keyCode)
+      cursorCell.map { spreadsheetCell =>
+        val CellId(row, column) = spreadsheetCell.cell.id
+        val (x,y) = (row+dx,column+dy)
+        val newCellOpt = for {
+          row <- spreadsheetCells.lift(x)
+          cell <- row.lift(y)
+        } yield cell
+        newCellOpt.foreach { cell =>
+          setCursorCell(cell)
+        }
       }
+    } else if(!editCellInput.isEditing && event.keyCode == ENTER) {
+      cursorCell.foreach(editCellInput.setCurrentCell)
+    } else if(editCellInput.isEditing && (event.keyCode == ESCAPE || event.keyCode == ENTER) ) {
+      val cell = editCellInput.currentCell.get
+      editCellInput.removeCurrentCell()
+      setCursorCell(cell)
     }
   }
+
+  val ESCAPE = 27
+  val ENTER = 13
 
   private val cells = Vector.tabulate(m,n) { (i,j) =>
     val wstr = spreadsheet.content(i)(j)
@@ -76,6 +94,8 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
 
   root.appendChild(editCellInput.htmlElement)
 
+  spreadsheetCells(0)(0).htmlElement.click()
+
   val table = Table(
     m,
     n,
@@ -90,7 +110,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     div
   }
 
-  private case class EditCellInput(var pointedCell: Option[SpreadsheetCell]) {
+  private case class EditCellInput(var currentCell: Option[SpreadsheetCell]) {
 
     val htmlElement = document.createElement("input").asInstanceOf[html.Input]
     htmlElement.`type` = "text"
@@ -100,16 +120,30 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
 
     htmlElement.addEventListener("input", onChange _)
 
-    def setPointedCell(cell: SpreadsheetCell) = {
+    def setCurrentCell(cell: SpreadsheetCell) = {
       htmlElement.readOnly = false
-      pointedCell.foreach(_.htmlElement.classList.remove("editing-cell"))
+      currentCell.foreach(_.htmlElement.classList.remove(CURSOR_CLASS))
       htmlElement.value = cell.expression
-      pointedCell = Some(cell)
-      cell.htmlElement.classList.add("editing-cell")
+      currentCell = Some(cell)
+      cell.htmlElement.classList.add(CURSOR_CLASS)
+      htmlElement.focus()
+    }
+
+    def setPlaceholder(s: String) = {
+      htmlElement.placeholder = s
+    }
+
+    def isEditing: Boolean = currentCell.isDefined
+
+    def removeCurrentCell() = {
+      currentCell.foreach(_.htmlElement.classList.remove(CURSOR_CLASS))
+      htmlElement.value = ""
+      htmlElement.readOnly = true
+      currentCell = None
     }
 
     def onChange(event: dom.KeyboardEvent) = {
-      pointedCell.foreach {
+      currentCell.foreach {
         _.processUserInput(htmlElement.value)
       }
     }
@@ -121,7 +155,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
   }
 
   private def getCell(cellId: CellId): Cell = {
-    println(s"getting cell ${cellId.row} ${cellId.column}")
+    //println(s"getting cell ${cellId.row} ${cellId.column}")
     cells(cellId.row)(cellId.column)
   }
 
@@ -137,8 +171,11 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       elem
     }
 
-    output.addEventListener("click", { _: dom.Event =>
-                              editCellInput.setPointedCell(this) } )
+    output.addEventListener(
+      "click",
+      { _: dom.Event =>
+        setCursorCell(this) }
+    )
 
     def htmlElement = output
 
@@ -176,7 +213,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
     }
 
     def processUserInput(newExpression: String) = {
-      println(s"old exp = $expression")
+      //println(s"old exp = $expression")
       if(expression != newExpression) {
         val (op, newWstr) = Utils.findOp(expression, newExpression) match {
           case Insert(char,pos) =>
@@ -201,7 +238,7 @@ case class Spreadsheet(spreadsheet: SpreadSheetContent, root: Element, broadcast
       println(s"executedOps = ${executedOps.size}")
       wstring = newWstring
       expression = wstring.text
-      if(editCellInput.pointedCell == Some(this)) {
+      if(editCellInput.currentCell == Some(this)) {
         editCellInput.setText(expression)
       }
       evaluate()

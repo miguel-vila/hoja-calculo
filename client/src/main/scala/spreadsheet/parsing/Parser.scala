@@ -34,7 +34,7 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val term: Parser[Expression] = chainl1(factor, multOp)
 
-  val string: Parser[StringValue] = (regex("[A-Za-z]*".r)).map{ case s => println(s); StringValue( s) }
+  val string: Parser[StringValue] = (regex("[A-Za-z]*".r)).map{ case s => StringValue( s) }
 
   val expression: Parser[Expression] =
     ( '=' ~> chainl1(term, addOp)) |

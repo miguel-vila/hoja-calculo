@@ -27,7 +27,7 @@ object Main extends js.JSApp {
           println(s"site id = ${sp.siteId}")
           spreadSheet = Spreadsheet(sp, cellsElem, broadcastCellOperation)
         case ClientMessage(_,Some(operation)) =>
-          if(operation.from != spreadSheet.siteId) { //@TODO this filtering should be done from the server
+          if(operation.from != spreadSheet.siteId) { //@TODO this filtering should be done on the server
             println(s"received operation $operation")
             spreadSheet.receiveRemoteOperation(operation)
           }

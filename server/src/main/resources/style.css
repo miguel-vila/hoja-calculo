@@ -1,4 +1,4 @@
-.editing-cell {
+.cursor {
     border-color: rgba(82,168,236,.8);
     border-width: 2px;
     outline: 10;
@@ -31,4 +31,8 @@
 
 .cell {
     width: 75px;
+}
+
+.hidden {
+    display: none;
 }
