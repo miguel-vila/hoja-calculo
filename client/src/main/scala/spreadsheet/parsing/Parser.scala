@@ -12,7 +12,7 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val floatNumber: Parser[FloatValue] = floatingPointNumber.map(s => FloatValue(s.toFloat))
 
-  val cellId = ( '$' ~> regex("[A-Z]".r) ~ regex("\\d+".r) ) map { case colstr ~ rowstr =>
+  val cellId = ( '$'.? ~> regex("[A-Z]".r) ~ regex("\\d+".r) ) map { case colstr ~ rowstr =>
     val column = (colstr.charAt(0) - 'A').toInt
     val row = Integer.parseInt(rowstr) - 1
     CellId(row, column)
@@ -26,18 +26,28 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val sumRange = ("sum" ~> '(' ~> range <~ ')') map (SumInRange.apply)
 
-  val factor: Parser[Expression] = ws ~> (floatNumber | reference | sumRange) <~ ws
+  def factor(withReferences: Boolean): Parser[Expression] = {
+    val fact = if(withReferences) {
+      floatNumber | reference | sumRange
+    } else {
+      floatNumber
+    }
+    ws ~> fact <~ ws
+  }
 
   val addOp = "+" ^^^ (Add.apply(_,_))
 
   val multOp = "*" ^^^ (Multiply.apply(_,_))
 
-  val term: Parser[Expression] = chainl1(factor, multOp)
+  def term(withReferences: Boolean): Parser[Expression] = chainl1(factor(withReferences), multOp)
 
   val string: Parser[StringValue] = (regex("[A-Za-z]*".r)).map{ case s => StringValue( s) }
 
+  def arithmeticExpression(withReferences: Boolean) = chainl1(term(withReferences), addOp)
+
   val expression: Parser[Expression] =
-    ( '=' ~> chainl1(term, addOp)) |
+    ( '=' ~> arithmeticExpression(withReferences = true) ) |
+      arithmeticExpression(withReferences = false) |
       floatNumber |
       string
 

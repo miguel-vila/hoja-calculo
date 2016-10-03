@@ -7,6 +7,9 @@ import org.scalajs.dom
 import upickle.default._
 import dom._
 
+import scala.scalajs.js.timers._
+import scala.concurrent.duration._
+
 class SpreadsheetConnection(
   root: Element
 ) {
@@ -15,14 +18,31 @@ class SpreadsheetConnection(
   private var connected = false
   //private val pendingOps = Queue.empty[SpreadSheetOp]
   private var spreadSheet: Spreadsheet = null
-  val MAX_RECONNECTIONS = 5
 
+  private val MAX_RETRIES = 5
+  private var reconnectionBackoff: FiniteDuration = 250.millis
   connect()
 
   private def connectingMsgClasses =
     document
       .getElementById("connectingmessage")
       .classList
+
+  private def maxReconnectionsExceededMsgClasses =
+    document
+      .getElementById("maxreconnections")
+      .classList
+
+  private def disconnectMessageClasses =
+    document
+      .getElementById("disconnectmessage")
+      .classList
+
+  private def showDisconnectMsg() = disconnectMessageClasses.remove("hidden")
+
+  private def hideDisconnectMsg() = disconnectMessageClasses.add("hidden")
+
+  private def showMaxRetriesExceeded() = maxReconnectionsExceededMsgClasses.remove("hidden")
 
   private def showConnectingMsg() = connectingMsgClasses.remove("hidden")
 
@@ -42,6 +62,7 @@ class SpreadsheetConnection(
     ws.onopen = { x: Event =>
       println(s"connected!")
       hideConnectingMsg()
+      hideDisconnectMsg()
       connected = true
     }
     ws.onmessage = { x: MessageEvent =>
@@ -66,16 +87,28 @@ class SpreadsheetConnection(
     ws.onclose = { x: Event =>
       connected = false
       spreadSheet.disableEdition()
+      showDisconnectMsg()
       reconnect()
     }
   }
 
   private def reconnect() = {
-    reconnections += 1
-    if(reconnections <= MAX_RECONNECTIONS) {
-      connect()
+    println(s"CONNECTION ERROR")
+    connected = false
+    hideConnectingMsg()
+    if(reconnections > MAX_RETRIES) {
+      hideDisconnectMsg()
+      showMaxRetriesExceeded()
     } else {
-      throw new Exception("FAIL HORRIBLY")
+      if( spreadSheet != null ) {
+        spreadSheet.disableEdition()
+      }
+      println(s"retrying in $reconnectionBackoff")
+      setTimeout(reconnectionBackoff) {
+        reconnectionBackoff = reconnectionBackoff * 2
+        reconnections += 1
+        connect()
+      }
     }
   }
 
