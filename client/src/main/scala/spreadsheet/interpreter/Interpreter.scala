@@ -21,7 +21,7 @@ object Interpreter {
           for {
             acc <- accExp
             value <- exp
-          } yield acc + value.asInstanceOf[FloatValue]
+          } yield acc +  castToFloatValue( value )
         }
     }
 
