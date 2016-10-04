@@ -16,6 +16,15 @@
     box-shadow: 0 0 8px rgba(121,227,86,1) !important;
 }
 
+.error-in-cell {
+    border-color: rgba(255,0,0,.8);
+    border-width: 1.5px;
+    outline: 10;
+    outline: thin dotted \9;
+    -moz-box-shadow: 0 0 8px rgba(255,0,0,.6);
+    box-shadow: 0 0 8px rgba(255,0,0,1);
+}
+
 .border-cell {
     background-color: #F0F0F0;
     text-align: center;

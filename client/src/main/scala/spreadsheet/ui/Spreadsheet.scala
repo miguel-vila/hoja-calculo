@@ -226,23 +226,32 @@ case class Spreadsheet(
     def evaluate() = {
       Parser.parse(expression) match {
         case Success(ast,_) =>
+
           try {
             val newExp = Interpreter.evaluate(ast)(getCell)
             cell.set( newExp )
+            removeErrorStyle()
           } catch {
             case t: Throwable =>
               println(s"Error: $t")
               t.printStackTrace()
-              output.value = "Evaluation error"
+              setErrorStyle()
+              //output.value = "Evaluation error"
           }
         case Failure(msg,_) =>
           println(s"Failure = $msg")
-          output.value = "Parse error"
+          setErrorStyle()
+          //output.value = "Parse error"
         case Error(msg,_) =>
           println(s"Error = $msg")
-          output.value = "Parse error"
+          setErrorStyle()
+          //output.value = "Parse error"
       }
     }
+
+    def setErrorStyle() = htmlElement.classList.add("error-in-cell")
+
+    def removeErrorStyle() = htmlElement.classList.remove("error-in-cell")
 
     def processUserInput(newExpression: String) = {
       //println(s"old exp = $expression")
