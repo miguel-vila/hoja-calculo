@@ -37,13 +37,17 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val addOp = "+" ^^^ (Add.apply(_,_))
 
+  val substractOp = "-" ^^^ (Substract.apply(_,_))
+
   val multOp = "*" ^^^ (Multiply.apply(_,_))
 
-  def term(withReferences: Boolean): Parser[Expression] = chainl1(factor(withReferences), multOp)
+  val divOp = "/" ^^^ (Divide.apply(_,_))
+
+  def term(withReferences: Boolean): Parser[Expression] = chainl1(factor(withReferences), multOp | divOp)
 
   val string: Parser[StringValue] = (regex("[A-Za-z]*".r)).map{ case s => StringValue( s) }
 
-  def arithmeticExpression(withReferences: Boolean) = chainl1(term(withReferences), addOp)
+  def arithmeticExpression(withReferences: Boolean) = chainl1(term(withReferences), addOp | substractOp)
 
   val expression: Parser[Expression] =
     ( '=' ~> arithmeticExpression(withReferences = true) ) |

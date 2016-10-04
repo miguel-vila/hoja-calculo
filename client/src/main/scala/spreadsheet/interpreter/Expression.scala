@@ -9,7 +9,9 @@ sealed trait Value {
 }
 case class NumberValue(value: Double) extends AnyRef with Expression with Value {
   def +(other: NumberValue)  = NumberValue(value + other.value)
+  def -(other: NumberValue)  = NumberValue(value - other.value)
   def *(other: NumberValue)  = NumberValue(value * other.value)
+  def /(other: NumberValue)  = NumberValue(value / other.value)
 
   override def toStr   = value.toString
 }
@@ -22,7 +24,9 @@ sealed trait BinaryOp extends Expression {
   def right: Expression
 }
 case class Add(left: Expression, right: Expression) extends BinaryOp
+case class Substract(left: Expression, right: Expression) extends BinaryOp
 case class Multiply(left: Expression, right: Expression) extends BinaryOp
+case class Divide(left: Expression, right: Expression) extends BinaryOp
 
 case class CellsRange(start: CellId, end: CellId) {
   require(start <= end)

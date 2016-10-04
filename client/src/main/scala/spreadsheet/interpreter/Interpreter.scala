@@ -36,7 +36,9 @@ object Interpreter {
     }
     binaryOp match {
       case _: Add       => operate( _ + _ )
+      case _: Substract => operate( _ - _ )
       case _: Multiply  => operate( _ * _ )
+      case _: Divide    => operate( _ / _ )
     }
   }
 

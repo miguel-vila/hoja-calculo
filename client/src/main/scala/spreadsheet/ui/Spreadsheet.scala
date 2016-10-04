@@ -16,6 +16,17 @@ import scala.concurrent.duration._
 
 import woot._
 
+/*
+import scala.scalajs.js
+
+@js.native
+@js.annotation.JSName("String")
+private object NativeJSString extends js.Object {
+  def fromCharCode(charCodes: Int*): String = js.native
+
+}
+*/
+
 case class Spreadsheet(
   private var spreadsheet: SpreadSheetContent,
   broadcastOperation: SpreadSheetOp => Unit
@@ -72,6 +83,12 @@ case class Spreadsheet(
       editCellInput.removeCurrentCell()
       setCursorCell(cell)
     }
+    /*
+    else if(!isDir(event.keyCode) && !editCellInput.isEditing){
+      println(NativeJSString.fromCharCode(event.keyCode))
+      cursorCell.foreach(cell => editCellInput.setCurrentCellAndFocus(cell))
+    }
+    */
   }
 
   val ESCAPE = 27
@@ -145,6 +162,12 @@ case class Spreadsheet(
       htmlElement.focus()
     }
 
+    /*
+    def setCurrentCellAndFocus(cell: SpreadsheetCell) = {
+      setCurrentCell(cell)
+    }
+    */
+
     def setPlaceholder(s: String) = {
       htmlElement.placeholder = s
     }
@@ -203,9 +226,15 @@ case class Spreadsheet(
     output.addEventListener(
       "click",
       { _: dom.Event =>
-        if(connected) {
-          setCursorCell(this)
-        }
+        setCursorCell(this)
+      }
+    )
+
+    output.addEventListener(
+      "dblclick",
+      { _: dom.Event =>
+        setCursorCell(this)
+        editCellInput.setCurrentCell(this)
       }
     )
 
@@ -236,16 +265,13 @@ case class Spreadsheet(
               println(s"Error: $t")
               t.printStackTrace()
               setErrorStyle()
-              //output.value = "Evaluation error"
           }
         case Failure(msg,_) =>
           println(s"Failure = $msg")
           setErrorStyle()
-          //output.value = "Parse error"
         case Error(msg,_) =>
           println(s"Error = $msg")
           setErrorStyle()
-          //output.value = "Parse error"
       }
     }
 
