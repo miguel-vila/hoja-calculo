@@ -90,6 +90,7 @@ case class Spreadsheet(
       val wstring = spreadsheet.content(i)(j)
       cell.resetValue( wstring )
     }
+    editCellInput.currentCell.foreach(editCellInput.setCurrentCell)
   }
 
   private val spreadsheetCells = for {
@@ -288,8 +289,6 @@ case class Spreadsheet(
     spreadsheetCells(row)(column).integrateRemoteOperation(cellOp.op)
   }
 
-  def disconnectMessageClasses = document.getElementById("disconnectmessage").classList
-
   def disableEdition(): Unit = {
     println(s"Disabling edition")
     connected = false
@@ -298,7 +297,6 @@ case class Spreadsheet(
       row <- spreadsheetCells
       cell <- row
     } cell.setDisabledStyle()
-    disconnectMessageClasses.remove("hidden")
   }
 
   def enableEdition(): Unit = {
@@ -309,7 +307,6 @@ case class Spreadsheet(
       row <- spreadsheetCells
       cell <- row
     } cell.removeDisabledStyle()
-    disconnectMessageClasses.add("hidden")
   }
 
 }

@@ -1,6 +1,7 @@
 package spreadsheet
 
 import spreadsheet.ui.Spreadsheet
+import spreadsheet.messages.Messages._
 import spreadsheet._
 import scala.collection.mutable.Queue
 import org.scalajs.dom
@@ -16,37 +17,17 @@ class SpreadsheetConnection(
 
   private var ws: WebSocket = _
   private var connected = false
-  //private val pendingOps = Queue.empty[SpreadSheetOp]
   private var spreadSheet: Spreadsheet = null
 
   private val MAX_RETRIES = 5
-  private var reconnectionBackoff: FiniteDuration = 250.millis
+  private val initialBackoff = 250.millis
+  private var reconnectionBackoff: FiniteDuration = initialBackoff
+  private val errorPeriod: FiniteDuration = reconnectionBackoff * Math.pow(2.toDouble, MAX_RETRIES.toDouble - 1).toLong
+  private var errorInPeriod = false
+
+  var reconnections = 0
+
   connect()
-
-  private def connectingMsgClasses =
-    document
-      .getElementById("connectingmessage")
-      .classList
-
-  private def maxReconnectionsExceededMsgClasses =
-    document
-      .getElementById("maxreconnections")
-      .classList
-
-  private def disconnectMessageClasses =
-    document
-      .getElementById("disconnectmessage")
-      .classList
-
-  private def showDisconnectMsg() = disconnectMessageClasses.remove("hidden")
-
-  private def hideDisconnectMsg() = disconnectMessageClasses.add("hidden")
-
-  private def showMaxRetriesExceeded() = maxReconnectionsExceededMsgClasses.remove("hidden")
-
-  private def showConnectingMsg() = connectingMsgClasses.remove("hidden")
-
-  private def hideConnectingMsg() = connectingMsgClasses.add("hidden")
 
   private def connect(): Unit = {
     val protocol = if( window.location.protocol.startsWith("https") ) { "wss" } else { "ws" }
@@ -56,9 +37,14 @@ class SpreadsheetConnection(
     setCallbacks()
   }
 
-  var reconnections = 0
-
   private def setCallbacks() = {
+    setTimeout(errorPeriod) {
+      errorInPeriod = !connected
+      if(!errorInPeriod) {
+        reconnectionBackoff = initialBackoff
+        reconnections = 0
+      }
+    }
     ws.onopen = { x: Event =>
       println(s"connected!")
       hideConnectingMsg()
@@ -69,7 +55,7 @@ class SpreadsheetConnection(
       read[ClientMessage](x.data.toString) match {
         case ClientMessage(Some(sp),_) =>
           println(s"site id = ${sp.siteId}")
-          if(reconnections == 0) {
+          if(spreadSheet == null) {
             spreadSheet = Spreadsheet(sp, broadcastCellOperation)
             root.appendChild(spreadSheet.htmlElement)
           } else {
@@ -106,7 +92,9 @@ class SpreadsheetConnection(
       println(s"retrying in $reconnectionBackoff")
       setTimeout(reconnectionBackoff) {
         reconnectionBackoff = reconnectionBackoff * 2
-        reconnections += 1
+        if(errorInPeriod) {
+          reconnections += 1
+        }
         connect()
       }
     }
