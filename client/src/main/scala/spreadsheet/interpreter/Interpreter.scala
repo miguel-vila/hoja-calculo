@@ -17,18 +17,18 @@ object Interpreter {
         } yield {
           env(CellId(row,column)).get()
         }
-        exps.foldLeft( Exp.unit(FloatValue(0.0f)) ) { (accExp, exp) =>
+        exps.foldLeft( Exp.unit(NumberValue(0.0)) ) { (accExp, exp) =>
           for {
             acc <- accExp
             value <- exp
-          } yield acc +  castToFloatValue( value )
+          } yield acc +  castToNumberValue( value )
         }
     }
 
   def evaluateBinaryOp(binaryOp: BinaryOp)(env: CellId => Cell): Exp[Value] = {
-    def operate(f: (FloatValue, FloatValue) => FloatValue): Exp[FloatValue] = {
-      val leftValue = evaluate(binaryOp.left)(env).map(castToFloatValue)
-      val rightValue = evaluate(binaryOp.right)(env).map(castToFloatValue)
+    def operate(f: (NumberValue, NumberValue) => NumberValue): Exp[NumberValue] = {
+      val leftValue = evaluate(binaryOp.left)(env).map(castToNumberValue)
+      val rightValue = evaluate(binaryOp.right)(env).map(castToNumberValue)
       Exp.map2(
         leftValue,
         rightValue
@@ -40,9 +40,9 @@ object Interpreter {
     }
   }
 
-  def castToFloatValue(value: Value): FloatValue = value match {
-    case FloatValue(n)   => FloatValue(n)
-    case StringValue("") => FloatValue(0)
+  def castToNumberValue(value: Value): NumberValue = value match {
+    case NumberValue(n)  => NumberValue(n)
+    case StringValue("") => NumberValue(0)
     case _               =>
       throw new Exception(s"Wrong type for $value, expected a numerical value")
   }

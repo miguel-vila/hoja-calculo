@@ -7,9 +7,9 @@ sealed trait Value {
   def toStr: String
   override def toString()   = toStr
 }
-case class FloatValue(value: Float) extends AnyRef with Expression with Value {
-  def +(other: FloatValue)  = FloatValue(value + other.value)
-  def *(other: FloatValue)  = FloatValue(value * other.value)
+case class NumberValue(value: Double) extends AnyRef with Expression with Value {
+  def +(other: NumberValue)  = NumberValue(value + other.value)
+  def *(other: NumberValue)  = NumberValue(value * other.value)
 
   override def toStr   = value.toString
 }

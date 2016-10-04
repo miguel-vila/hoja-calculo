@@ -10,7 +10,7 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   val ws = rep(' ')
 
-  val floatNumber: Parser[FloatValue] = floatingPointNumber.map(s => FloatValue(s.toFloat))
+  val number: Parser[NumberValue] = floatingPointNumber.map(s => NumberValue(s.toDouble))
 
   val cellId = ( '$'.? ~> regex("[A-Z]".r) ~ regex("\\d+".r) ) map { case colstr ~ rowstr =>
     val column = (colstr.charAt(0) - 'A').toInt
@@ -28,9 +28,9 @@ object Parser extends JavaTokenParsers with RegexParsers {
 
   def factor(withReferences: Boolean): Parser[Expression] = {
     val fact = if(withReferences) {
-      floatNumber | reference | sumRange
+      number | reference | sumRange
     } else {
-      floatNumber
+      number
     }
     ws ~> fact <~ ws
   }
@@ -48,7 +48,7 @@ object Parser extends JavaTokenParsers with RegexParsers {
   val expression: Parser[Expression] =
     ( '=' ~> arithmeticExpression(withReferences = true) ) |
       arithmeticExpression(withReferences = false) |
-      floatNumber |
+      number |
       string
 
   def parse(str: String): ParseResult[Expression] = parseAll(expression, str)

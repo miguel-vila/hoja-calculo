@@ -2,7 +2,7 @@ package spreadsheet.ui
 
 import spreadsheet._
 import spreadsheet.frp.{Exp, Cell}
-import spreadsheet.interpreter.{FloatValue, StringValue, Interpreter}
+import spreadsheet.interpreter.{NumberValue, StringValue, Interpreter}
 import spreadsheet.parsing.Parser
 import Parser.{ Success, Failure , Error }
 
