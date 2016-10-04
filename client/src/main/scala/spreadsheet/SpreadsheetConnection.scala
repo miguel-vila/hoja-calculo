@@ -18,14 +18,12 @@ class SpreadsheetConnection(
   private var ws: WebSocket = _
   private var connected = false
   private var spreadSheet: Spreadsheet = null
+  private var pendingOps = Queue.empty[SpreadSheetOp]
 
   private val MAX_RETRIES = 5
   private val initialBackoff = 250.millis
-  private var reconnectionBackoff: FiniteDuration = initialBackoff
-  private val errorPeriod: FiniteDuration = reconnectionBackoff * Math.pow(2.toDouble, MAX_RETRIES.toDouble - 1).toLong
-  private var errorInPeriod = false
-
-  var reconnections = 0
+  private var reconnectionBackoff = initialBackoff
+  private var reconnections = 0
 
   connect()
 
@@ -38,17 +36,12 @@ class SpreadsheetConnection(
   }
 
   private def setCallbacks() = {
-    setTimeout(errorPeriod) {
-      errorInPeriod = !connected
-      if(!errorInPeriod) {
-        reconnectionBackoff = initialBackoff
-        reconnections = 0
-      }
-    }
     ws.onopen = { x: Event =>
       println(s"connected!")
       hideConnectingMsg()
       hideDisconnectMsg()
+      reconnections = 0
+      reconnectionBackoff = initialBackoff
       connected = true
     }
     ws.onmessage = { x: MessageEvent =>
@@ -61,7 +54,9 @@ class SpreadsheetConnection(
           } else {
             println(s"resetting")
             spreadSheet.resetSpreadsheetInfo(sp)
-            spreadSheet.enableEdition()
+            while(!pendingOps.isEmpty) {
+              ws.send( write( pendingOps.dequeue() ) )
+            }
           }
         case ClientMessage(_,Some(operation)) =>
           if(operation.from != spreadSheet.siteId) { //@TODO this filtering should be done on the server
@@ -71,9 +66,6 @@ class SpreadsheetConnection(
       }
     }
     ws.onclose = { x: Event =>
-      connected = false
-      spreadSheet.disableEdition()
-      showDisconnectMsg()
       reconnect()
     }
   }
@@ -81,20 +73,14 @@ class SpreadsheetConnection(
   private def reconnect() = {
     println(s"CONNECTION ERROR")
     connected = false
-    hideConnectingMsg()
     if(reconnections > MAX_RETRIES) {
-      hideDisconnectMsg()
+      spreadSheet.disableEdition()
       showMaxRetriesExceeded()
     } else {
-      if( spreadSheet != null ) {
-        spreadSheet.disableEdition()
-      }
       println(s"retrying in $reconnectionBackoff")
       setTimeout(reconnectionBackoff) {
         reconnectionBackoff = reconnectionBackoff * 2
-        if(errorInPeriod) {
-          reconnections += 1
-        }
+        reconnections += 1
         connect()
       }
     }
@@ -105,7 +91,8 @@ class SpreadsheetConnection(
       println(s"broadcasting $cellOp")
       ws.send( write(cellOp) )
     } else {
-      //pendingOps += cellOp
+      println(s"stashing $cellOp")
+      pendingOps += cellOp
     }
   }
 }
