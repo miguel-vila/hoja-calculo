@@ -32,18 +32,34 @@ import upickle.default._
 
 import woot._
 
+import java.io._
+import scala.io._
+import java.nio.file.{Paths, Files}
+
 class SpreadsheetWebsocket {
 
   //val spreadSheets: HashMap[String, SpreadSheetContent] = HashMap.empty
 
-  val sp = SpreadSheetContent(SiteId("server"), "test", 26, 20)
+  def readFromFile(name: String): SpreadSheetContent = {
+    val source = Source.fromFile( s"$name.json" )
+    val lines = try source.mkString finally source.close()
+    read[SpreadSheetContent](lines)
+  }
 
   private val ops = topic[SpreadSheetOp]()
 
   def encodeOp(op: SpreadSheetOp): Text = Text(write(ClientMessage(None, Some(op))))
 
-  def updateSpreadSheet(op: SpreadSheetOp): SpreadSheetOp = {
+  def dumpToFile(sp: SpreadSheetContent): Unit = {
+    val file = new File(s"${sp.name}.json")
+    val pw = new PrintWriter(file)
+    pw.write(write(sp))
+    pw.close()
+  }
+
+  def updateSpreadSheet(sp: SpreadSheetContent)(op: SpreadSheetOp): SpreadSheetOp = {
     sp.integrateOperation(op)
+    dumpToFile(sp)
     op
   }
 
@@ -55,26 +71,37 @@ class SpreadsheetWebsocket {
   def parse(json: String): Throwable \/ SpreadSheetOp =
     \/.fromTryCatchNonFatal { read[SpreadSheetOp](json) }
 
-  def decodeFrame(frame: WebSocketFrame): Throwable \/ SpreadSheetOp =
+  def decodeFrame(frame: WebSocketFrame, sp: SpreadSheetContent): Throwable \/ SpreadSheetOp =
     frame match {
-      case Text(json, _) => parse(json).map(updateSpreadSheet)
+      case Text(json, _) => parse(json).map(updateSpreadSheet(sp))
       case nonText       => new IllegalArgumentException(s"Cannot handle: $nonText").left
     }
 
-  def safeConsume(consume: SpreadSheetOp => Task[Unit]): WebSocketFrame => Task[Unit] =
-         ws => decodeFrame(ws).fold(errorHandler, consume)
+  def safeConsume(sp: SpreadSheetContent)(consume: SpreadSheetOp => Task[Unit]): WebSocketFrame => Task[Unit] =
+         ws => decodeFrame(ws, sp).fold(errorHandler, consume)
 
   val route = HttpService {
     case req@ GET -> Root / "edit" / name =>
       val clientId = SiteId.random
-      val clientCopy = sp.withSiteId(clientId)
+
+      val sp =
+        if(Files.exists(Paths.get(s"$name.json"))) {
+          readFromFile(name)
+        } else {
+          val sp = SpreadSheetContent(SiteId("server"), name, 13, 10)
+          dumpToFile(sp)
+          sp
+        }
+
+      val clientCopy =
+        sp.withSiteId(clientId)
 
       val otherUserOps = ops.subscribe//.filter(_.from != clientId)
       //println(s"about to serialize $clientCopy")
       val serializedCopy = write(ClientMessage(Some(clientCopy), None))
       //println(s"serialized $serializedCopy")
       val src = Process.emit(Text( serializedCopy )) ++ otherUserOps.map(encodeOp)
-      val snk = ops.publish.map(safeConsume).onComplete(cleanup)
+      val snk = ops.publish.map(safeConsume(sp)).onComplete(cleanup)
 
       WS(Exchange(src, snk))
   }
