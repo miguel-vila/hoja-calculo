@@ -49,7 +49,7 @@ class SpreadsheetWebsocket {
   val driver = MongoDriver()
   val parsedUri = MongoConnection.parseURI(mongoUri)
   val connection = Future.fromTry(parsedUri.map(driver.connection(_)))
-  val db: Future[DefaultDB] = connection.flatMap(_.database("local"))
+  val db: Future[DefaultDB] = connection.flatMap(_.database( sys.env.get("MONGODB_DB").getOrElse("local")))
   val spColl = db.map(_.collection("spreadsheets"))
 
   var sp: SpreadSheetContent = null
