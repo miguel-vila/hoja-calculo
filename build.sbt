@@ -53,7 +53,9 @@ lazy val server = project.in(file("server"))
   .settings(
   name := "spreadsheet-server",
   persistLauncher := true,
-  libraryDependencies ++= http4s,
+  libraryDependencies ++= http4s ++ Seq(
+    "org.reactivemongo" %% "reactivemongo" % "0.11.9"
+  ),
   resources in Compile ++= {
     def andSourceMap(aFile: java.io.File) = Seq(
       aFile,

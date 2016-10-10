@@ -10,7 +10,6 @@ import org.http4s.server.websocket._
 import scalaz.concurrent.Task
 import scalaz.concurrent.Strategy
 import scalaz.stream.async.unboundedQueue
-import scalaz.stream.{Process, Sink}
 import scalaz.stream.{DefaultScheduler, Exchange}
 import scalaz.stream.time.awakeEvery
 
@@ -28,39 +27,59 @@ import org.http4s.websocket.WebsocketBits._
 import org.http4s.dsl._
 
 import org.log4s.getLogger
-import upickle.default._
+import upickle.legacy._
 
 import woot._
 
-import java.io._
-import scala.io._
 import java.nio.file.{Paths, Files}
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ Await, ExecutionContext , Future }
+import scala.util.{ Success, Failure }
+import spreadsheet.serialization.Writers._
+import spreadsheet.serialization.Readers.spreadSheetReader
+
+import reactivemongo.api.{ DefaultDB, MongoConnection, MongoDriver }
+import reactivemongo.bson.document
 
 class SpreadsheetWebsocket {
 
-  //val spreadSheets: HashMap[String, SpreadSheetContent] = HashMap.empty
+  val mongoUri = sys.env.get("MONGODB_URI").getOrElse("localhost:27017")
 
-  def readFromFile(name: String): SpreadSheetContent = {
-    val source = Source.fromFile( s"$name.json" )
-    val lines = try source.mkString finally source.close()
-    read[SpreadSheetContent](lines)
+  val driver = MongoDriver()
+  val parsedUri = MongoConnection.parseURI(mongoUri)
+  val connection = Future.fromTry(parsedUri.map(driver.connection(_)))
+  val db: Future[DefaultDB] = connection.flatMap(_.database("local"))
+  val spColl = db.map(_.collection("spreadsheets"))
+
+  var sp: SpreadSheetContent = null
+
+  def saveToMongo(): Task[Unit] = toTask {
+    spColl.flatMap(_.update(document("name" -> sp.name), sp, upsert = true)).map(_ => ())
+  }
+
+  def toTask[A](future: => Future[A])(implicit ec: ExecutionContext): Task[A] = {
+    Task.async { callback =>
+      future.onComplete {
+        case Success(value) => callback(value.right)
+        case Failure(error) => callback(error.left )
+      }
+    }
+  }
+
+  def readFromMongo(name: String): Future[Option[SpreadSheetContent]] = {
+    spColl.flatMap(_.find(document("name" -> name)).one[SpreadSheetContent])
   }
 
   private val ops = topic[SpreadSheetOp]()
 
   def encodeOp(op: SpreadSheetOp): Text = Text(write(ClientMessage(None, Some(op))))
 
-  def dumpToFile(sp: SpreadSheetContent): Unit = {
-    val file = new File(s"${sp.name}.json")
-    val pw = new PrintWriter(file)
-    pw.write(write(sp))
-    pw.close()
-  }
-
-  def updateSpreadSheet(sp: SpreadSheetContent)(op: SpreadSheetOp): SpreadSheetOp = {
+  def updateSpreadSheet(op: SpreadSheetOp): Task[Throwable \/ SpreadSheetOp] = {
     sp.integrateOperation(op)
-    dumpToFile(sp)
-    op
+    saveToMongo().map { _ =>
+      op.right
+    }
   }
 
   def errorHandler(err: Throwable): Task[Unit] = {
@@ -71,37 +90,48 @@ class SpreadsheetWebsocket {
   def parse(json: String): Throwable \/ SpreadSheetOp =
     \/.fromTryCatchNonFatal { read[SpreadSheetOp](json) }
 
-  def decodeFrame(frame: WebSocketFrame, sp: SpreadSheetContent): Throwable \/ SpreadSheetOp =
+  def throwError[A](error: Throwable): Task[Throwable \/ A] = Task.now(error.left)
+
+  def decodeFrame(frame: WebSocketFrame): Task[Throwable \/ SpreadSheetOp] =
     frame match {
-      case Text(json, _) => parse(json).map(updateSpreadSheet(sp))
-      case nonText       => new IllegalArgumentException(s"Cannot handle: $nonText").left
+      case Text(json, _) =>
+        parse(json).fold(throwError, updateSpreadSheet)
+      case nonText       =>
+        Task.now(new IllegalArgumentException(s"Cannot handle: $nonText").left)
     }
 
-  def safeConsume(sp: SpreadSheetContent)(consume: SpreadSheetOp => Task[Unit]): WebSocketFrame => Task[Unit] =
-         ws => decodeFrame(ws, sp).fold(errorHandler, consume)
+  def getSpreadsheet(name: String): SpreadSheetContent = {
+    if(sp != null) {
+      sp
+    } else {
+      val fut = readFromMongo(name).map {
+        case Some(_sp) =>
+          sp = _sp
+          sp
+        case None =>
+          sp = SpreadSheetContent(SiteId("server"), name, 13, 10)
+          sp
+      }
+      Await.result(fut, 500.millis)
+    }
+  }
+
+  def safeConsume(consume: SpreadSheetOp => Task[Unit]): WebSocketFrame => Task[Unit] =
+         ws => decodeFrame(ws).flatMap(_.fold(errorHandler, consume))
 
   val route = HttpService {
     case req@ GET -> Root / "edit" / name =>
       val clientId = SiteId.random
 
-      val sp =
-        if(Files.exists(Paths.get(s"$name.json"))) {
-          readFromFile(name)
-        } else {
-          val sp = SpreadSheetContent(SiteId("server"), name, 13, 10)
-          dumpToFile(sp)
-          sp
-        }
+      getSpreadsheet(name)
 
-      val clientCopy =
-        sp.withSiteId(clientId)
+      val clientCopy = sp.withSiteId(clientId)
+      val clientCopyJson = write(ClientMessage(Some(clientCopy), None))
 
       val otherUserOps = ops.subscribe//.filter(_.from != clientId)
-      //println(s"about to serialize $clientCopy")
-      val serializedCopy = write(ClientMessage(Some(clientCopy), None))
-      //println(s"serialized $serializedCopy")
-      val src = Process.emit(Text( serializedCopy )) ++ otherUserOps.map(encodeOp)
-      val snk = ops.publish.map(safeConsume(sp)).onComplete(cleanup)
+      val src = Process.emit( Text(clientCopyJson) ) ++ otherUserOps.map(encodeOp)
+
+      val snk = ops.publish.map(safeConsume).onComplete(cleanup)
 
       WS(Exchange(src, snk))
   }

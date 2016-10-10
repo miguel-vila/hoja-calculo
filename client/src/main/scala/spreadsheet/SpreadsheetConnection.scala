@@ -5,7 +5,7 @@ import spreadsheet.messages.Messages._
 import spreadsheet._
 import scala.collection.mutable.Queue
 import org.scalajs.dom
-import upickle.default._
+import upickle.legacy._
 import dom._
 
 import scala.scalajs.js.timers._

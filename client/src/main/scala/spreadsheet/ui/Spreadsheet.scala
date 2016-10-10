@@ -199,6 +199,14 @@ case class Spreadsheet(
       htmlElement.readOnly = false
     }
 
+    def setErrorStyleWhenEditing() = if(isEditing) {
+      htmlElement.classList.add("error-in-cell")
+    }
+
+    def removeErrorStyleWhenEditing() = if(isEditing) {
+      htmlElement.classList.remove("error-in-cell")
+    }
+
   }
 
   private def getCell(cellId: CellId): Cell = {
@@ -226,6 +234,7 @@ case class Spreadsheet(
     output.addEventListener(
       "click",
       { _: dom.Event =>
+        editCellInput.removeCurrentCell()
         setCursorCell(this)
       }
     )
@@ -255,7 +264,6 @@ case class Spreadsheet(
     def evaluate() = {
       Parser.parse(expression) match {
         case Success(ast,_) =>
-
           try {
             val newExp = Interpreter.evaluate(ast)(getCell)
             cell.set( newExp )
@@ -275,9 +283,14 @@ case class Spreadsheet(
       }
     }
 
-    def setErrorStyle() = htmlElement.classList.add("error-in-cell")
+    def setErrorStyle() = {
+      editCellInput.setErrorStyleWhenEditing()
+      htmlElement.classList.add("error-in-cell")
+    }
 
-    def removeErrorStyle() = htmlElement.classList.remove("error-in-cell")
+    def removeErrorStyle() = {
+      htmlElement.classList.remove("error-in-cell")
+    }
 
     def processUserInput(newExpression: String) = {
       //println(s"old exp = $expression")
