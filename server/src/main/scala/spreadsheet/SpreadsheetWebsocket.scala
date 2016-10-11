@@ -6,6 +6,7 @@ import org.http4s.server.blaze.BlazeBuilder
 import org.http4s.websocket.WebsocketBits._
 import org.http4s.dsl._
 import org.http4s.server.websocket._
+import org.http4s.server.websocket.WS
 
 import scalaz.concurrent.Task
 import scalaz.concurrent.Strategy
@@ -21,11 +22,6 @@ import scalaz.syntax.either._
 import scalaz.{\/,-\/,\/-}
 import scalaz.concurrent.Task
 
-import org.http4s.server.websocket.WS
-import org.http4s.websocket.WebsocketBits._
-
-import org.http4s.dsl._
-
 import org.log4s.getLogger
 import upickle.legacy._
 
@@ -40,17 +36,11 @@ import spreadsheet.serialization.Writers._
 import spreadsheet.serialization.Readers.spreadSheetReader
 
 import reactivemongo.api.{ DefaultDB, MongoConnection, MongoDriver }
-import reactivemongo.bson.document
+import reactivemongo.bson.{ document, BSONBoolean, BSONDocument }
 
 class SpreadsheetWebsocket {
 
-  val mongoUri = sys.env.get("MONGODB_URI").getOrElse("localhost:27017")
-
-  val driver = MongoDriver()
-  val parsedUri = MongoConnection.parseURI(mongoUri)
-  val connection = Future.fromTry(parsedUri.map(driver.connection(_)))
-  val db: Future[DefaultDB] = connection.flatMap(_.database( sys.env.get("MONGODB_DB").getOrElse("local")))
-  val spColl = db.map(_.collection("spreadsheets"))
+  val spColl = MongoDB.spColl
 
   var sp: SpreadSheetContent = null
 

@@ -72,7 +72,8 @@ lazy val client = project.in(file("client"))
   persistLauncher in Compile := true,
   libraryDependencies ++= Seq(
 	  "org.scala-js" %%% "scalajs-dom" % "0.9.1",
-    "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2"
+    "org.scala-js" %% "scala-parser-combinators_sjs0.6" % "1.0.2",
+    "fr.hmil" %%% "roshttp" % "2.0.0-RC1"
   ))
   .dependsOn(spreadSheetJS)
 

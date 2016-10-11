@@ -12,7 +12,8 @@ import scala.scalajs.js.timers._
 import scala.concurrent.duration._
 
 class SpreadsheetConnection(
-  root: Element
+  root: Element,
+  name: String
 ) {
 
   private var ws: WebSocket = _
@@ -30,7 +31,7 @@ class SpreadsheetConnection(
   private def connect(): Unit = {
     val protocol = if( window.location.protocol.startsWith("https") ) { "wss" } else { "ws" }
     showConnectingMsg()
-    val url = s"${protocol}://${dom.window.location.host}/ws/edit/abc"
+    val url = s"${protocol}://${dom.window.location.host}/ws/edit/$name"
     ws = new dom.WebSocket(url)
     setCallbacks()
   }
