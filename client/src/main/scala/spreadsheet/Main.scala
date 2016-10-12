@@ -59,7 +59,8 @@ object Main extends js.JSApp {
           button.classList.add("btn")
           button.classList.add("btn-default")
           button.appendChild(document.createTextNode("Create new spreadsheet"))
-          button.addEventListener("click", { _: Event =>
+          button.addEventListener("click", { e: Event =>
+                                    e.preventDefault()
                                     jQuery(s"#$modalId").modal("hide")
                                     openSpreadsheet(input.value.replaceAll(" +", "-"))
                                   })
